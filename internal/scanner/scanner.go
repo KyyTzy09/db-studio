@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"fmt"
 
 	"db-studio-go/internal/config"
 )
@@ -35,7 +36,7 @@ func (cs *CompositeScanner) Scan(ctx context.Context, projectPath string) ([]con
 		}
 
 		for _, conn := range conns {
-			key := string(conn.Driver) + ":" + conn.Host + ":" + conn.Database + ":" + conn.FilePath
+			key := fmt.Sprintf("%s:%s:%s:%d:%s:%s", conn.Name, conn.Driver, conn.Host, conn.Port, conn.Database, conn.FilePath)
 			if !seenMap[key] {
 				seenMap[key] = true
 				results = append(results, conn)
