@@ -8,11 +8,13 @@
 		errorMessage
 	} from '$lib/stores/dbStore';
 
-	import Sidebar from '$lib/components/Sidebar.svelte';
-	import TableGrid from '$lib/components/TableGrid.svelte';
-	import SchemaExplorer from '$lib/components/SchemaExplorer.svelte';
-	import SQLEditor from '$lib/components/SQLEditor.svelte';
-	import ConnectWizard from '$lib/components/ConnectWizard.svelte';
+	import {
+		Sidebar,
+		TableGrid,
+		SchemaExplorer,
+		SQLEditor,
+		ConnectWizard
+	} from '$lib/components';
 
 	let { data } = $props();
 
@@ -58,7 +60,12 @@
 		<ConnectWizard />
 	{:else}
 		<!-- Main DBStudio Layout -->
-		<Sidebar />
+		<Sidebar
+			selectedTable={$selectedTable}
+			onSelectTable={(name) => selectedTable.set(name)}
+			activeTab={$activeTab === 'data' ? 'table' : $activeTab}
+			onSelectTab={(tab) => activeTab.set(tab === 'table' ? 'data' : tab)}
+		/>
 
 		<!-- Main Studio Container -->
 		<main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-950">
