@@ -197,6 +197,12 @@ func (m *MySQLDriver) InsertRow(ctx context.Context, table string, data map[stri
 		return err
 	}
 
+	if len(data) == 0 {
+		query := fmt.Sprintf("INSERT INTO `%s` () VALUES ()", table)
+		_, err := m.db.ExecContext(ctx, query)
+		return err
+	}
+
 	var cols []string
 	var placeholders []string
 	var args []interface{}
@@ -215,6 +221,10 @@ func (m *MySQLDriver) InsertRow(ctx context.Context, table string, data map[stri
 func (m *MySQLDriver) UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error {
 	if err := m.Connect(ctx); err != nil {
 		return err
+	}
+
+	if len(data) == 0 {
+		return nil
 	}
 
 	var setClauses []string

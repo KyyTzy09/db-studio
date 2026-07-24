@@ -213,6 +213,12 @@ func (p *PostgresDriver) InsertRow(ctx context.Context, table string, data map[s
 		return err
 	}
 
+	if len(data) == 0 {
+		query := fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", table)
+		_, err := p.db.ExecContext(ctx, query)
+		return err
+	}
+
 	var cols []string
 	var placeholders []string
 	var args []interface{}
@@ -233,6 +239,10 @@ func (p *PostgresDriver) InsertRow(ctx context.Context, table string, data map[s
 func (p *PostgresDriver) UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error {
 	if err := p.Connect(ctx); err != nil {
 		return err
+	}
+
+	if len(data) == 0 {
+		return nil
 	}
 
 	var setClauses []string

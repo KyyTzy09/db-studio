@@ -148,7 +148,7 @@
 			setTimeout(() => {
 				onSuccess();
 				onClose();
-			}, 1000);
+			}, 800);
 		} catch (err: any) {
 			errorMessage = err.message || 'Failed to import data';
 			statusMessage = '';
@@ -159,13 +159,20 @@
 </script>
 
 {#if isOpen}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-		<div class="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+	<!-- Modal Backdrop (Click outside to close) -->
+	<div
+		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
+		role="button"
+		tabindex="-1"
+		onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+	>
+		<div class="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default">
 			<div class="flex items-center justify-between border-b border-slate-800 pb-4">
 				<h3 class="text-lg font-bold text-slate-100">
 					📥 Bulk Import Data to <span class="text-purple-400 font-mono">{tableName}</span>
 				</h3>
-				<button onclick={onClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold">✕</button>
+				<button type="button" onclick={onClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold">✕</button>
 			</div>
 
 			{#if errorMessage}
@@ -190,6 +197,8 @@
 						? 'border-purple-500 bg-purple-500/10'
 						: 'border-slate-700 bg-slate-950/60 hover:border-slate-500 hover:bg-slate-950'
 				}"
+				role="region"
+				aria-label="Drag and Drop Upload Area"
 			>
 				<input type="file" accept=".csv,.json" onchange={handleFileSelect} class="hidden" id="fileInput" />
 				<label for="fileInput" class="cursor-pointer w-full flex flex-col items-center">
