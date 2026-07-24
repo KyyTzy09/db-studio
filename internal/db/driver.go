@@ -1,0 +1,51 @@
+package db
+
+import (
+	"context"
+
+	"db-studio-go/internal/config"
+)
+
+// ColumnInfo holds column metadata
+type ColumnInfo struct {
+	Name         string `json:"name"`
+	DataType     string `json:"data_type"`
+	IsNullable   bool   `json:"is_nullable"`
+	IsPrimaryKey bool   `json:"is_primary_key"`
+	DefaultValue string `json:"default_value,omitempty"`
+}
+
+// TableInfo holds high-level table description
+type TableInfo struct {
+	Name      string `json:"name"`
+	Type      string `json:"type"` // BASE TABLE, VIEW
+	RowCount  int64  `json:"row_count,omitempty"`
+}
+
+// TableSchema holds detailed schema information
+type TableSchema struct {
+	TableName string       `json:"table_name"`
+	Columns   []ColumnInfo `json:"columns"`
+}
+
+// QueryResult holds execution response for data fetch or raw queries
+type QueryResult struct {
+	Columns      []string                 `json:"columns"`
+	Rows         []map[string]interface{} `json:"rows"`
+	AffectedRows int64                    `json:"affected_rows"`
+	ExecutionMs  int64                    `json:"execution_ms"`
+}
+
+// Database defines standard operations for supported database drivers
+type Database interface {
+	Connect(ctx context.Context) error
+	Disconnect() error
+	Ping(ctx context.Context) error
+	GetTables(ctx context.Context) ([]TableInfo, error)
+	GetSchema(ctx context.Context, tableName string) (*TableSchema, error)
+	ExecuteQuery(ctx context.Context, query string, force bool) (*QueryResult, error)
+	InsertRow(ctx context.Context, table string, data map[string]interface{}) error
+	UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error
+	DeleteRow(ctx context.Context, table string, pk map[string]interface{}) error
+	Config() config.ConnectionConfig
+}

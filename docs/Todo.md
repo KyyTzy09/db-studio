@@ -8,119 +8,142 @@
 
 ---
 
-## Phase 0: Project Initialization
+## Phase 0: Project Initialization & Monorepo Setup
 ### 0.1 Backend Setup (Go)
-- [ ] 🔴 Inisialisasi Go module (`go mod init github.com/KyyTzy09/dbstudio`)
-- [ ] 🔴 Install dependencies CLI & Config: `cobra`, `viper`
-- [ ] 🔴 Install dependencies Router: `chi`
-- [ ] 🔴 Install dependencies Database Drivers: `pgx/v5` (Postgres), `go-sql-driver/mysql` (MySQL), `modernc/sqlite` (SQLite)
-- [ ] 🔴 Setup arsitektur folder Go (Clean Code): `cmd/` (CLI command), `internal/scanner` (deteksi config), `internal/api` (HTTP endpoints), `internal/db` (Driver Interface)
-- [ ] 🔴 Konfigurasi OS global path config (misal: `~/.config/dbstudio/connections.json`)
+- [x] 🔴 Inisialisasi Go module (`go mod init db-studio-go`)
+- [x] 🔴 Install dependencies CLI & Config: `github.com/spf13/cobra`, `github.com/spf13/viper`
+- [x] 🔴 Install dependencies Router: `github.com/go-chi/chi/v5`
+- [x] 🔴 Install dependencies Database Drivers: `github.com/jackc/pgx/v5` (Postgres), `github.com/go-sql-driver/mysql` (MySQL), `modernc.org/sqlite` (SQLite)
+- [x] 🔴 Setup arsitektur folder Go (Modular Pipeline):
+  - `cmd/` (CLI Commands: `root.go`, `connect.go`, `doctor.go`, `version.go`)
+  - `internal/config/` (OS Global Path Config Manager)
+  - `internal/scanner/` (Auto-detection Scanners)
+  - `internal/wizard/` (CLI Interactive Wizard Fallback)
+  - `internal/db/` (Database Interface & Drivers)
+  - `internal/http/` (Chi REST API Router & Middleware)
+- [x] 🔴 Konfigurasi OS global path config (`~/.config/dbstudio/connections.json`)
 
 ### 0.2 Frontend Setup (SvelteKit)
-- [ ] 🔴 Inisialisasi SvelteKit project (di dalam subfolder project, misal: `web/` atau `ui/`)
-- [ ] 🔴 Konfigurasi `adapter-static` untuk SPA (Single Page Application) build target
-- [ ] 🔴 Install dependencies UI: `tailwindcss`, `@tanstack/svelte-table` (TanStack Table), `codemirror` (CodeMirror 6)
-- [ ] 🔴 Terapkan aturan *Clean Code*: Pemisahan komponen visual (Dumb Components) dengan komponen pengambil data (Smart Components)
+- [x] 🔴 Inisialisasi SvelteKit project di subfolder `web/` (`bun create svelte@latest web`)
+- [x] 🔴 Konfigurasi `@sveltejs/adapter-static` untuk SPA (Single Page Application) build target di `web/vite.config.ts`
+- [x] 🔴 Install dependencies UI: `@tailwindcss/vite` / `tailwindcss`, `@tanstack/svelte-table`, `@codemirror/state`, `@codemirror/view`, `@codemirror/lang-sql`
+- [ ] 🔴 Setup konversi komponen visual (Dumb Presentational Components) dan komponen pengambil data (Smart Components / Stores)
 
-### 0.3 Build & Embed Setup
-- [ ] 🔴 Setup `go:embed` pada backend untuk membaca folder build statis dari SvelteKit (`web/build/`)
-- [ ] 🔴 Buat Makefile / build script untuk otomatisasi: *Compile Frontend* -> *Embed ke Go* -> *Build Single Binary Go*
-
----
-
-## Phase 1: Core CLI & Scanner Layer
-### 1.1 Command Line Interface (Cobra)
-- [ ] 🔴 Implementasi root command `dbstudio` (Menjalankan Scanner -> Start Chi Server -> Buka Browser)
-- [ ] 🔴 Implementasi command `dbstudio connect` (Menyimpan koneksi manual ke global config)
-- [ ] 🔴 Implementasi command `dbstudio doctor` (Mengecek *health* koneksi)
-- [ ] 🔴 Implementasi command `dbstudio version`
-- [ ] 🔴 Implementasi OS-native *browser launcher* untuk membuka `http://localhost:port` otomatis
-
-### 1.2 Auto-Detection Scanner
-- [ ] 🔴 Parsing file `.env` (Mencari `DATABASE_URL`, `DB_HOST`, `DB_USER`, dll)
-- [ ] 🔴 Parsing konfigurasi dari `docker-compose.yml` atau `compose.yaml`
-- [ ] 🟡 Deteksi *running* Docker container untuk fallback pencarian kredensial
+### 0.3 Build & Embed Integration
+- [x] 🔴 Setup `go:embed` pada `main.go` dan handler Chi untuk membaca folder build statis dari SvelteKit (`web/build/`)
+- [ ] 🔴 Buat Makefile / build script otomatisasi: `npm --prefix web run build` ➔ `go build -o bin/dbstudio main.go`
 
 ---
 
-## Phase 2: Database Driver Layer (Go)
-### 2.1 Interface Definition
-- [ ] 🔴 Buat base Interface standar `Database` (e.g. `Connect()`, `GetTables()`, `GetColumns()`, `ExecuteQuery()`, `Insert()`, `Update()`, `Delete()`)
+## Phase 1: Modular Config, Scanner & CLI Wizard Pipeline
+### 1.1 Global Config Manager (`internal/config`)
+- [x] 🔴 Implementasi pembacaan/penulisan `connections.json` di global OS directory (`os.UserConfigDir()`)
+- [x] 🔴 Terapkan pemetaan koneksi berdasarkan hash/path absolut dari direktori proyek saat ini (`cwd`)
 
-### 2.2 Driver Implementation
-- [ ] 🔴 Implementasi antarmuka untuk PostgreSQL
-- [ ] 🔴 Implementasi antarmuka untuk MySQL
-- [ ] 🔴 Implementasi antarmuka untuk SQLite
-- [ ] 🔴 Implementasi logika **Lazy Connection**: Jangan *ping* DB saat CLI menyala, lakukan *ping* saat HTTP Request pertama kali masuk dari Web UI.
+### 1.2 Auto-Detection Scanner Pipeline (`internal/scanner`)
+- [x] 🔴 `SavedConfigScanner`: Cek apakah proyek ini sudah tersimpan di global config. Jika ADA ➔ langsung gunakan.
+- [x] 🔴 `EnvScanner`: Parsing file `.env` lokal (deteksi `DATABASE_URL`, `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_PORT`)
+- [ ] 🟡 `DockerComposeScanner`: Parsing `docker-compose.yml` / `compose.yaml` untuk mengekstrak kredensial database container
+- [x] 🔴 Logic Handler Hasil Scanning:
+  - Jika **1 Config Ditemukan**: Otomatis pilih & jalankan server.
+  - Jika **>1 Config Ditemukan**: Tampilkan pilihan prompt konfirmasi di CLI.
+  - Jika **0 Config Ditemukan**: Pemicu fallback ke CLI Wizard.
 
----
+### 1.3 CLI Interactive Wizard (`internal/wizard`)
+- [x] 🔴 Implementasi prompt interaktif di terminal (Tipe DB: Postgres/MySQL/SQLite, Host, Port, User, Pass, DB Name) saat auto-detect gagal
+- [x] 🔴 Simpan hasil input wizard ke global config untuk penggunaan berikutnya
 
-## Phase 3: REST API Layer (Chi)
-### 3.1 Connection API
-- [ ] 🔴 Endpoint `GET /api/connection/status` (Memicu *lazy connect* dan cek *state* database)
-- [ ] 🔴 Endpoint `POST /api/connection/save` (Simpan form manual DB config ke global OS path)
-
-### 3.2 Database Info API
-- [ ] 🔴 Endpoint `GET /api/databases` (List multiple DB jika auto-detect menemukan lebih dari satu)
-- [ ] 🔴 Endpoint `GET /api/tables` (List tabel, views, functions)
-- [ ] 🔴 Endpoint `GET /api/tables/:name/schema` (Mendapatkan meta data: columns, data type, indexes, foreign keys)
-
-### 3.3 Data & CRUD API
-- [ ] 🔴 Endpoint `GET /api/tables/:name/data` (Pagination, Sorting, Filtering, Search)
-- [ ] 🔴 Endpoint `POST /api/tables/:name` (Insert baris baru)
-- [ ] 🔴 Endpoint `PATCH /api/tables/:name` (Update data)
-- [ ] 🔴 Endpoint `DELETE /api/tables/:name` (Delete baris)
-
-### 3.4 Raw Query API & Security Guard
-- [ ] 🔴 Endpoint `POST /api/query` (Eksekusi Raw SQL dari CodeMirror)
-- [ ] 🔴 Implementasi *Middleware/Interceptor*: Regex matching keywords destruktif (`(?i)\b(DROP|DELETE|UPDATE|TRUNCATE|ALTER)\b`)
-- [ ] 🔴 Return HTTP `428 Precondition Required` jika kueri berbahaya ditemukan dan *payload* API tidak menyertakan `force=true`.
+### 1.4 CLI Commands & Browser Launcher (`cmd/`)
+- [x] 🔴 Root Command `dbstudio`: Eksekusi Pipeline (Saved Config ➔ Scanner ➔ Wizard Fallback ➔ Start Chi Server ➔ Buka Browser)
+- [ ] 🔴 Command `dbstudio connect`: Langsung memicu CLI Wizard untuk menambah/mengedit koneksi
+- [ ] 🔴 Command `dbstudio doctor`: Mengecek *health* koneksi database yang tersimpan
+- [ ] 🔴 Command `dbstudio version`: Menampilkan informasi versi build
+- [x] 🔴 Utility *Browser Launcher* cross-platform (Windows `rundll32`, macOS `open`, Linux `xdg-open`)
 
 ---
 
-## Phase 4: Web Studio (Frontend - SvelteKit)
-### 4.1 Layout & Initial Screens
-- [ ] 🔴 Halaman Wizard "Connect to Database" (Form fallback jika deteksi CLI gagal)
-- [ ] 🔴 Halaman "Select Database" (Jika multi-DB config terdeteksi)
-- [ ] 🔴 Setup Layouting Utama & Sidebar (Daftar Tables, Views, Functions)
+## Phase 2: Database Driver & Lazy Connection Layer (`internal/db`)
+### 2.1 Interface Standard
+- [ ] 🔴 Buat base interface `Database`:
+  ```go
+  type Database interface {
+      Connect(ctx context.Context) error
+      Disconnect() error
+      Ping(ctx context.Context) error
+      GetTables(ctx context.Context) ([]TableInfo, error)
+      GetSchema(ctx context.Context, tableName string) (*TableSchema, error)
+      ExecuteQuery(ctx context.Context, query string, force bool) (*QueryResult, error)
+      InsertRow(ctx context.Context, table string, data map[string]interface{}) error
+      UpdateRow(ctx context.Context, table string, primaryKey map[string]interface{}, data map[string]interface{}) error
+      DeleteRow(ctx context.Context, table string, primaryKey map[string]interface{}) error
+  }
+  ```
 
-### 4.2 Data Viewer & CRUD (TanStack Table)
-- [ ] 🔴 Implementasi Data Grid utama (Pagination, Sort, Filter, Search params)
-- [ ] 🔴 UI form/modal untuk Insert Data
-- [ ] 🔴 UI *inline edit* atau modal untuk Update Data
-- [ ] 🔴 UI modal konfirmasi untuk Delete Data dari tabel
-
-### 4.3 Schema Explorer
-- [ ] 🔴 UI untuk Tab "Columns" (Menampilkan meta data tipe kolom tabel)
-- [ ] 🔴 UI untuk Tab "Indexes" & "Foreign Keys"
-
-### 4.4 SQL Editor (CodeMirror)
-- [ ] 🔴 Integrasi CodeMirror 6 dengan tema dan *SQL syntax highlighting*
-- [ ] 🔴 Area output *results* berupa Data Grid
-- [ ] 🔴 Implementasi "Danger Zone Modal": Menangkap HTTP Status `428` dari *query request*, lalu memunculkan modal peringatan. Jika "Yes, Execute", kirim ulang request dengan `force=true`.
-
----
-
-## Phase 5: Polish & Finalisasi MVP
-### 5.1 Optimization & Testing
-- [ ] 🔴 Verifikasi *startup time* target (< 3 detik) untuk *flow* mengetik command hingga browser terbuka
-- [ ] 🔴 Testing *offline-only flow*
-- [ ] 🟡 Penanganan konflik *port*: Jika port default (e.g. 8080) terpakai, otomatis *fallback* mencari random open port.
-
-### 5.2 Packaging & Distribution
-- [ ] 🔴 Optimasi ukuran Go binary build
-- [ ] 🟡 Publikasi NPM wrapper package (`npm install -g dbstudio`)
-- [ ] 🟡 Buat repository, README.md instruksi rilis untuk `go install`, `brew`, dan `scoop`.
+### 2.2 Driver Implementations
+- [x] 🔴 Implementasi driver PostgreSQL (`pgx/v5`)
+- [x] 🔴 Implementasi driver MySQL (`go-sql-driver/mysql`)
+- [x] 🔴 Implementasi driver SQLite (`modernc.org/sqlite`)
+- [x] 🔴 Terapkan **Lazy Connection**: Inisialisasi struct driver tanpa melakukan blocking `Ping()` saat CLI menyala. Ping & pembuat koneksi fisik hanya dipicu saat request HTTP pertama masuk dari Web UI.
 
 ---
 
-## Phase 6: Future Capabilities (Post-MVP) 🔵
-### 6.1 Roadmap Mendatang
-- [ ] 🔵 Dukungan Database Tambahan (MongoDB, MariaDB, SQL Server, Redis)
-- [ ] 🔵 ER Diagram Viewer
-- [ ] 🔵 Export & Import Data (CSV/JSON)
-- [ ] 🔵 AI Query Assistant
-- [ ] 🔵 Dark Mode
-- [ ] 🔵 Database Diff / Schema Compare
-- [ ] 🔵 Migration History Viewer
+## Phase 3: REST API Layer (`internal/http`)
+### 3.1 Connection & Info Endpoints
+- [x] 🔴 `GET /api/connection/status`: Trigger lazy connection & kembalikan status DB
+- [x] 🔴 `GET /api/databases`: Mengembalikan daftar database yang terdeteksi/tersedia
+- [x] 🔴 `GET /api/tables`: Mengembalikan daftar tabel, views, dan fungsi
+- [x] 🔴 `GET /api/tables/{name}/schema`: Mengembalikan metadata kolom, tipe data, primary key, index, dan foreign key
+
+### 3.2 Data CRUD Endpoints
+- [x] 🔴 `GET /api/tables/{name}/data`: Mengembalikan baris data (Pagination, Sorting, Filtering, Global Search)
+- [x] 🔴 `POST /api/tables/{name}`: Insert baris data baru
+- [x] 🔴 `PATCH /api/tables/{name}`: Update baris data berdasarkan Primary Key
+- [x] 🔴 `DELETE /api/tables/{name}`: Hapus baris data berdasarkan Primary Key
+
+### 3.3 Raw Query Endpoint & Safety Guard Middleware
+- [x] 🔴 `POST /api/query`: Memproses Raw SQL dari CodeMirror
+- [x] 🔴 Safety Guard Interceptor: Match regex keyword destruktif `(?i)\b(DROP|DELETE|UPDATE|TRUNCATE|ALTER)\b`
+- [x] 🔴 Kembalikan HTTP `428 Precondition Required` jika query mengandung kata kunci destruktif dan payload tidak memiliki `force: true`.
+
+---
+
+## Phase 4: Web Studio Frontend (`web/`)
+### 4.1 Layout & State Management
+- [x] 🔴 Setup Sidebar Navigasi (Search Table, List Tables, Views, Functions)
+- [x] 🔴 Store Svelte untuk mengelola state koneksi aktif dan daftar tabel
+
+### 4.2 Data Grid & CRUD Components
+- [x] 🔴 Implementasi `TableGrid.svelte` (Data Grid dengan pagination, sorting header, & quick filter)
+- [x] 🔴 Modal Form Insert & Edit Data
+- [x] 🔴 Modal Konfirmasi Delete Data
+
+### 4.3 Schema Explorer Components
+- [x] 🔴 Tab Viewer Columns (Nama kolom, tipe data, nullable, default value)
+- [x] 🟡 Tab Viewer Indexes & Foreign Keys
+
+### 4.4 SQL Editor Component
+- [x] 🔴 Integrasi CodeMirror 6 dengan SQL syntax highlighting
+- [x] 🔴 Grid Result Viewer untuk hasil kueri `SELECT`
+- [x] 🔴 **Danger Zone Modal**: Menangkap respon HTTP `428` dari server dan memunculkan pop-up peringatan berbahaya. Jika user setuju "Run Destructive Query", kirim ulang request dengan `{ force: true }`.
+
+---
+
+## Phase 5: Testing, Optimization & Distribution
+### 5.1 Performance & Offline Testing
+- [x] 🔴 Verifikasi startup time target (< 3 detik dari command CLI hingga browser terbuka)
+- [x] 🔴 Pengujian alur 100% offline (tanpa koneksi internet)
+- [ ] 🟡 Automatic Port Fallback: Jika port default `8080` terpakai, pilih random available port secara otomatis
+
+### 5.2 Binary Distribution
+- [x] 🔴 Compilation test untuk Windows (.exe), macOS, dan Linux
+- [ ] 🟡 Buat NPM wrapper package (`npm install -g dbstudio`)
+- [ ] 🟡 Rilis dokumen README.md & panduan instalasi Homebrew/Scoop
+
+---
+
+## Phase 6: Post-MVP Roadmap 🔵
+- [ ] 🔵 Support Redis, MongoDB, MariaDB
+- [ ] 🔵 Visual ER Diagram Viewer
+- [ ] 🔵 Data Export / Import (CSV, JSON)
+- [ ] 🔵 AI Query Assistant (Natural Language to SQL)
+- [ ] 🔵 Dark Mode / Light Mode Toggle
