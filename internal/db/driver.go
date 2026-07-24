@@ -17,9 +17,9 @@ type ColumnInfo struct {
 
 // TableInfo holds high-level table description
 type TableInfo struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"` // BASE TABLE, VIEW
-	RowCount  int64  `json:"row_count,omitempty"`
+	Name     string `json:"name"`
+	Type     string `json:"type"` // BASE TABLE, VIEW
+	RowCount int64  `json:"row_count,omitempty"`
 }
 
 // TableSchema holds detailed schema information
@@ -47,5 +47,6 @@ type Database interface {
 	InsertRow(ctx context.Context, table string, data map[string]interface{}) error
 	UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error
 	DeleteRow(ctx context.Context, table string, pk map[string]interface{}) error
+	BatchInsertOrUpdate(ctx context.Context, table string, rows []map[string]interface{}, mode string) (int64, error)
 	Config() config.ConnectionConfig
 }

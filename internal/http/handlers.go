@@ -135,6 +135,34 @@ func (h *Handler) HandleDeleteRow(w http.ResponseWriter, r *http.Request) {
 	h.respondJSON(w, http.StatusOK, map[string]string{"message": "Row deleted successfully"})
 }
 
+// POST /api/tables/{name}/batch
+func (h *Handler) HandleBatchInsertOrUpdate(w http.ResponseWriter, r *http.Request) {
+	tableName := chi.URLParam(r, "name")
+	var payload struct {
+		Rows []map[string]interface{} `json:"rows"`
+		Mode string                   `json:"mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
+		return
+	}
+
+	if payload.Mode == "" {
+		payload.Mode = "insert"
+	}
+
+	affected, err := h.driver.BatchInsertOrUpdate(r.Context(), tableName, payload.Rows, payload.Mode)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":       true,
+		"affected_rows": affected,
+	})
+}
+
 type QueryPayload struct {
 	Query string `json:"query"`
 	Force bool   `json:"force"`

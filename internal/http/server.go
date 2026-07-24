@@ -70,6 +70,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/tables/{name}/schema", h.HandleGetSchema)
 		r.Get("/tables/{name}/data", h.HandleGetData)
 		r.Post("/tables/{name}", h.HandleInsertRow)
+		r.Post("/tables/{name}/batch", h.HandleBatchInsertOrUpdate)
 		r.Patch("/tables/{name}", h.HandleUpdateRow)
 		r.Delete("/tables/{name}", h.HandleDeleteRow)
 		r.Post("/query", h.HandleExecuteQuery)
@@ -84,7 +85,6 @@ func (s *Server) setupRoutes() {
 				http.Error(w, "API Endpoint Not Found", http.StatusNotFound)
 				return
 			}
-			// Serve static file if exists, else fallback to index.html for SPA routing
 			path := strings.TrimPrefix(r.URL.Path, "/")
 			if path != "" {
 				if _, err := subFS.Open(path); err == nil {
@@ -92,7 +92,6 @@ func (s *Server) setupRoutes() {
 					return
 				}
 			}
-			// Fallback to index.html
 			r.URL.Path = "/"
 			fileServer.ServeHTTP(w, r)
 		})

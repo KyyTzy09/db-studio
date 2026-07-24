@@ -4,6 +4,7 @@
 	import { sql } from '@codemirror/lang-sql';
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { executeRawQuery, fetchTables, type QueryResult } from '$lib/api';
+	import { exportToCSV, exportToJSON } from '$lib/utils/exportUtils';
 	import { tablesList } from '$lib/stores/dbStore';
 
 	let editorContainer = $state<HTMLDivElement | null>(null);
@@ -55,7 +56,6 @@
 			}
 			if (res.data) {
 				queryResult = res.data;
-				// Auto-refresh tables list if a DDL query (CREATE, DROP, ALTER) was executed
 				try {
 					const { tables } = await fetchTables();
 					tablesList.set(tables || []);
@@ -73,6 +73,18 @@
 	function confirmDangerousQuery() {
 		showDangerModal = false;
 		runQuery(true);
+	}
+
+	function handleExportCSV() {
+		if (queryResult) {
+			exportToCSV('query_result', queryResult.columns, queryResult.rows);
+		}
+	}
+
+	function handleExportJSON() {
+		if (queryResult) {
+			exportToJSON('query_result', queryResult.rows);
+		}
 	}
 </script>
 
@@ -113,9 +125,25 @@
 		<div class="px-6 py-2 border-b border-slate-800 bg-slate-900/30 flex items-center justify-between text-xs text-slate-400">
 			<span>Execution Results</span>
 			{#if queryResult}
-				<span class="text-emerald-400 font-mono text-[11px]">
-					Returned {queryResult.rows.length} rows ({queryResult.execution_ms} ms)
-				</span>
+				<div class="flex items-center gap-3">
+					<span class="text-emerald-400 font-mono text-[11px]">
+						Returned {queryResult.rows.length} rows ({queryResult.execution_ms} ms)
+					</span>
+					<div class="flex items-center rounded-lg border border-slate-700 bg-slate-900 text-[11px]">
+						<button
+							onclick={handleExportCSV}
+							class="px-2 py-0.5 text-slate-300 hover:text-white hover:bg-slate-800 transition rounded-l-lg border-r border-slate-700 font-mono"
+						>
+							CSV ⬇
+						</button>
+						<button
+							onclick={handleExportJSON}
+							class="px-2 py-0.5 text-slate-300 hover:text-white hover:bg-slate-800 transition rounded-r-lg font-mono"
+						>
+							JSON ⬇
+						</button>
+					</div>
+				</div>
 			{/if}
 		</div>
 

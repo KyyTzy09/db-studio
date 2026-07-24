@@ -248,3 +248,52 @@ func (s *SQLiteDriver) DeleteRow(ctx context.Context, table string, pk map[strin
 	_, err := s.db.ExecContext(ctx, query, args...)
 	return err
 }
+
+func (s *SQLiteDriver) BatchInsertOrUpdate(ctx context.Context, table string, rows []map[string]interface{}, mode string) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	schema, err := s.GetSchema(ctx, table)
+	if err != nil {
+		return 0, err
+	}
+
+	var pkCols []string
+	for _, col := range schema.Columns {
+		if col.IsPrimaryKey {
+			pkCols = append(pkCols, col.Name)
+		}
+	}
+
+	var totalAffected int64
+	for _, rowData := range rows {
+		if mode == "upsert" && len(pkCols) > 0 {
+			pkMap := make(map[string]interface{})
+			hasPKValues := true
+			for _, pkCol := range pkCols {
+				val, exists := rowData[pkCol]
+				if exists && val != nil && fmt.Sprintf("%v", val) != "" {
+					pkMap[pkCol] = val
+				} else {
+					hasPKValues = false
+				}
+			}
+
+			if hasPKValues {
+				err := s.UpdateRow(ctx, table, pkMap, rowData)
+				if err == nil {
+					totalAffected++
+					continue
+				}
+			}
+		}
+
+		err := s.InsertRow(ctx, table, rowData)
+		if err != nil {
+			return totalAffected, fmt.Errorf("row insert error: %w", err)
+		}
+		totalAffected++
+	}
+
+	return totalAffected, nil
+}

@@ -114,12 +114,11 @@
 
 ### 4.2 Data Grid & CRUD Components
 - [x] 🔴 Implementasi `TableGrid.svelte` (Data Grid dengan pagination, sorting header, & quick filter)
-- [x] 🔴 Modal Form Insert & Edit Data
+- [x] 🔴 Modal Form Insert Data Baru (`InsertRowModal.svelte`)
+- [x] 🔴 Modal Form Edit Data Baris (`EditRowModal.svelte`)
 - [x] 🔴 Modal Konfirmasi Delete Data
-
-### 4.3 Schema Explorer Components
-- [x] 🔴 Tab Viewer Columns (Nama kolom, tipe data, nullable, default value)
-- [x] 🟡 Tab Viewer Indexes & Foreign Keys
+- [x] 🔴 Modal Bulk Import CSV & JSON dengan **Drag and Drop Zone** & Toggle Mode ("Insert Only" vs "Upsert")
+- [x] 🔴 Client-Side Data Export Utility (Export CSV & JSON di TableGrid & SQL Editor)
 
 ### 4.4 SQL Editor Component
 - [x] 🔴 Integrasi CodeMirror 6 dengan SQL syntax highlighting

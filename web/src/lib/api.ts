@@ -96,6 +96,18 @@ export async function insertTableRow(tableName: string, data: Record<string, any
 	}
 }
 
+export async function updateTableRow(tableName: string, pk: Record<string, any>, data: Record<string, any>): Promise<void> {
+	const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableName)}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ pk, data })
+	});
+	if (!res.ok) {
+		const json = await res.json();
+		throw new Error(json.error || 'Failed to update row');
+	}
+}
+
 export async function deleteTableRow(tableName: string, pk: Record<string, any>): Promise<void> {
 	const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableName)}`, {
 		method: 'DELETE',
@@ -106,4 +118,17 @@ export async function deleteTableRow(tableName: string, pk: Record<string, any>)
 		const json = await res.json();
 		throw new Error(json.error || 'Failed to delete row');
 	}
+}
+
+export async function batchInsertOrUpdate(tableName: string, rows: Record<string, any>[], mode: 'insert' | 'upsert'): Promise<{ affected_rows: number }> {
+	const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableName)}/batch`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ rows, mode })
+	});
+	if (!res.ok) {
+		const json = await res.json();
+		throw new Error(json.error || 'Failed to batch process rows');
+	}
+	return res.json();
 }

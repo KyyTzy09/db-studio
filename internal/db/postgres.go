@@ -15,9 +15,9 @@ import (
 )
 
 type PostgresDriver struct {
-	cfg  config.ConnectionConfig
-	db   *sql.DB
-	mu   sync.Mutex
+	cfg config.ConnectionConfig
+	db  *sql.DB
+	mu  sync.Mutex
 }
 
 func NewPostgresDriver(cfg config.ConnectionConfig) *PostgresDriver {
@@ -275,4 +275,53 @@ func (p *PostgresDriver) DeleteRow(ctx context.Context, table string, pk map[str
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s", table, strings.Join(whereClauses, " AND "))
 	_, err := p.db.ExecContext(ctx, query, args...)
 	return err
+}
+
+func (p *PostgresDriver) BatchInsertOrUpdate(ctx context.Context, table string, rows []map[string]interface{}, mode string) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	schema, err := p.GetSchema(ctx, table)
+	if err != nil {
+		return 0, err
+	}
+
+	var pkCols []string
+	for _, col := range schema.Columns {
+		if col.IsPrimaryKey {
+			pkCols = append(pkCols, col.Name)
+		}
+	}
+
+	var totalAffected int64
+	for _, rowData := range rows {
+		if mode == "upsert" && len(pkCols) > 0 {
+			pkMap := make(map[string]interface{})
+			hasPKValues := true
+			for _, pkCol := range pkCols {
+				val, exists := rowData[pkCol]
+				if exists && val != nil && fmt.Sprintf("%v", val) != "" {
+					pkMap[pkCol] = val
+				} else {
+					hasPKValues = false
+				}
+			}
+
+			if hasPKValues {
+				err := p.UpdateRow(ctx, table, pkMap, rowData)
+				if err == nil {
+					totalAffected++
+					continue
+				}
+			}
+		}
+
+		err := p.InsertRow(ctx, table, rowData)
+		if err != nil {
+			return totalAffected, fmt.Errorf("row insert error: %w", err)
+		}
+		totalAffected++
+	}
+
+	return totalAffected, nil
 }
