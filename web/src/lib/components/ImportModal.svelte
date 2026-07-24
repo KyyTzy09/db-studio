@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { batchInsertOrUpdate } from '../api';
+	import { batchInsertOrUpdate } from '../../data/services';
 
-	let { tableName, isOpen = false, onClose, onSuccess } = $props<{
+	let { tableName, isOpen = $bindable(false), onClose, onSuccess } = $props<{
 		tableName: string;
 		isOpen?: boolean;
-		onClose: () => void;
-		onSuccess: () => void;
+		onClose?: () => void;
+		onSuccess?: () => void;
 	}>();
 
 	let isDragging = $state(false);
@@ -32,6 +32,11 @@
 		isUploading = false;
 		errorMessage = '';
 		statusMessage = '';
+	}
+
+	function handleClose() {
+		isOpen = false;
+		if (onClose) onClose();
 	}
 
 	function handleDragOver(e: DragEvent) {
@@ -146,8 +151,8 @@
 			const res = await batchInsertOrUpdate(tableName, parsedRows, importMode);
 			statusMessage = `✅ Success! Processed ${res.affected_rows} rows.`;
 			setTimeout(() => {
-				onSuccess();
-				onClose();
+				if (onSuccess) onSuccess();
+				handleClose();
 			}, 800);
 		} catch (err: any) {
 			errorMessage = err.message || 'Failed to import data';
@@ -159,20 +164,25 @@
 </script>
 
 {#if isOpen}
-	<!-- Modal Backdrop (Click outside to close) -->
 	<div
-		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
-		role="button"
+		role="dialog"
+		aria-modal="true"
 		tabindex="-1"
-		onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+		onkeydown={(e) => { if (e.key === 'Escape') handleClose(); }}
 	>
-		<div class="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default">
+		<div
+			class="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+			tabindex="-1"
+		>
 			<div class="flex items-center justify-between border-b border-slate-800 pb-4">
 				<h3 class="text-lg font-bold text-slate-100">
 					📥 Bulk Import Data to <span class="text-purple-400 font-mono">{tableName}</span>
 				</h3>
-				<button type="button" onclick={onClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold">✕</button>
+				<button type="button" onclick={handleClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold p-1 cursor-pointer">✕</button>
 			</div>
 
 			{#if errorMessage}
@@ -273,8 +283,8 @@
 			<div class="pt-6 flex justify-end gap-3 border-t border-slate-800 mt-6">
 				<button
 					type="button"
-					onclick={onClose}
-					class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+					onclick={handleClose}
+					class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer"
 				>
 					Cancel
 				</button>
@@ -282,7 +292,7 @@
 					type="button"
 					onclick={handleExecuteImport}
 					disabled={parsedRows.length === 0 || isUploading}
-					class="rounded-lg bg-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-lg hover:bg-purple-500 disabled:opacity-50 transition"
+					class="rounded-lg bg-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-lg hover:bg-purple-500 disabled:opacity-50 transition cursor-pointer"
 				>
 					{isUploading ? 'Processing Import...' : `Import ${parsedRows.length} Rows`}
 				</button>

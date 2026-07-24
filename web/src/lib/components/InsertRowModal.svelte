@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { ColumnInfo } from '../api';
-	import { insertTableRow } from '../api';
+	import type { ColumnInfo } from '../../data/models';
+	import { insertTableRow } from '../../data/services';
 
-	let { tableName, columns = [], isOpen = false, onClose, onSuccess } = $props<{
+	let { tableName, columns = [], isOpen = $bindable(false), onClose, onSuccess } = $props<{
 		tableName: string;
 		columns?: ColumnInfo[];
 		isOpen?: boolean;
-		onClose: () => void;
-		onSuccess: () => void;
+		onClose?: () => void;
+		onSuccess?: () => void;
 	}>();
 
 	let formData = $state<Record<string, any>>({});
@@ -19,11 +19,15 @@
 			formData = {};
 			errorMessage = '';
 			columns.forEach((col) => {
-				// Keep input empty by default so DB auto-fills timestamp/auto-increment/default values
 				formData[col.name] = '';
 			});
 		}
 	});
+
+	function handleClose() {
+		isOpen = false;
+		if (onClose) onClose();
+	}
 
 	async function handleSubmit() {
 		isSubmitting = true;
@@ -32,15 +36,14 @@
 			const payload: Record<string, any> = {};
 			for (const col of columns) {
 				const val = formData[col.name];
-				// Only include non-empty values in payload. Omit empty strings to let DB apply auto-increment / DEFAULT CURRENT_TIMESTAMP
 				if (val !== '' && val !== null && val !== undefined) {
 					payload[col.name] = val;
 				}
 			}
 
 			await insertTableRow(tableName, payload);
-			onSuccess();
-			onClose();
+			if (onSuccess) onSuccess();
+			handleClose();
 		} catch (err: any) {
 			errorMessage = err.message || 'Failed to insert row';
 		} finally {
@@ -50,20 +53,25 @@
 </script>
 
 {#if isOpen}
-	<!-- Modal Backdrop (Click outside to close) -->
 	<div
-		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
-		role="button"
+		role="dialog"
+		aria-modal="true"
 		tabindex="-1"
-		onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+		onkeydown={(e) => { if (e.key === 'Escape') handleClose(); }}
 	>
-		<div class="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default">
+		<div
+			class="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+			tabindex="-1"
+		>
 			<div class="flex items-center justify-between border-b border-slate-800 pb-4">
 				<h3 class="text-lg font-bold text-slate-100">
 					➕ Insert Row to <span class="text-emerald-400 font-mono">{tableName}</span>
 				</h3>
-				<button type="button" onclick={onClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold">✕</button>
+				<button type="button" onclick={handleClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold p-1 cursor-pointer">✕</button>
 			</div>
 
 			{#if errorMessage}
@@ -99,15 +107,15 @@
 				<div class="pt-4 flex justify-end gap-3 border-t border-slate-800">
 					<button
 						type="button"
-						onclick={onClose}
-						class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+						onclick={handleClose}
+						class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-emerald-500 disabled:opacity-50 transition"
+						class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-emerald-500 disabled:opacity-50 transition cursor-pointer"
 					>
 						{isSubmitting ? 'Inserting...' : 'Insert Row'}
 					</button>

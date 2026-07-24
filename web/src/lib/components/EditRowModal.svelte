@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { ColumnInfo } from '../api';
-	import { updateTableRow } from '../api';
+	import type { ColumnInfo } from '../../data/models';
+	import { updateTableRow } from '../../data/services';
 
-	let { tableName, columns = [], rowData = null, isOpen = false, onClose, onSuccess } = $props<{
+	let { tableName, columns = [], rowData = null, isOpen = $bindable(false), onClose, onSuccess } = $props<{
 		tableName: string;
 		columns?: ColumnInfo[];
 		rowData?: Record<string, any> | null;
 		isOpen?: boolean;
-		onClose: () => void;
-		onSuccess: () => void;
+		onClose?: () => void;
+		onSuccess?: () => void;
 	}>();
 
 	let formData = $state<Record<string, any>>({});
@@ -34,14 +34,18 @@
 		}
 	});
 
+	function handleClose() {
+		isOpen = false;
+		if (onClose) onClose();
+	}
+
 	async function handleSubmit() {
 		isSubmitting = true;
 		errorMessage = '';
 		try {
-			// Clean update payload: omit primary key fields and empty strings
 			const cleanData: Record<string, any> = {};
 			for (const col of columns) {
-				if (col.is_primary_key) continue; // Don't update PK in SET clause
+				if (col.is_primary_key) continue;
 				const val = formData[col.name];
 				if (val !== '' && val !== null && val !== undefined) {
 					cleanData[col.name] = val;
@@ -49,8 +53,8 @@
 			}
 
 			await updateTableRow(tableName, pkData, cleanData);
-			onSuccess();
-			onClose();
+			if (onSuccess) onSuccess();
+			handleClose();
 		} catch (err: any) {
 			errorMessage = err.message || 'Failed to update row';
 		} finally {
@@ -60,20 +64,25 @@
 </script>
 
 {#if isOpen && rowData}
-	<!-- Modal Backdrop (Click outside to close) -->
 	<div
-		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
-		role="button"
+		role="dialog"
+		aria-modal="true"
 		tabindex="-1"
-		onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+		onkeydown={(e) => { if (e.key === 'Escape') handleClose(); }}
 	>
-		<div class="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default">
+		<div
+			class="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+			tabindex="-1"
+		>
 			<div class="flex items-center justify-between border-b border-slate-800 pb-4">
 				<h3 class="text-lg font-bold text-slate-100">
 					✏️ Edit Row in <span class="text-sky-400 font-mono">{tableName}</span>
 				</h3>
-				<button type="button" onclick={onClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold">✕</button>
+				<button type="button" onclick={handleClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold p-1 cursor-pointer">✕</button>
 			</div>
 
 			{#if errorMessage}
@@ -106,15 +115,15 @@
 				<div class="pt-4 flex justify-end gap-3 border-t border-slate-800">
 					<button
 						type="button"
-						onclick={onClose}
-						class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+						onclick={handleClose}
+						class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						class="rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-sky-500 disabled:opacity-50 transition"
+						class="rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-sky-500 disabled:opacity-50 transition cursor-pointer"
 					>
 						{isSubmitting ? 'Updating...' : 'Save Changes'}
 					</button>
