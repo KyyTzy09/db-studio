@@ -17,7 +17,6 @@ func RunCLIWizard(projectPath string) (*config.ConnectionConfig, error) {
 
 	fmt.Println("\n==================================================")
 	fmt.Println(" 🛠️  DBStudio Connection Wizard")
-	fmt.Println(" Tidak ada konfigurasi database yang terdeteksi.")
 	fmt.Println(" Silakan masukkan rincian koneksi database Anda.")
 	fmt.Println("==================================================")
 

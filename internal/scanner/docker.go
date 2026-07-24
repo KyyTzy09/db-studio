@@ -54,6 +54,7 @@ func parseDockerComposeFile(filePath, projectPath, sourceFilename string) ([]con
 	var currentImage, currentService string
 	envVars := make(map[string]string)
 	var hostPort int
+	inServicesBlock := false
 
 	flushService := func() {
 		if currentService == "" {
@@ -96,7 +97,6 @@ func parseDockerComposeFile(filePath, projectPath, sourceFilename string) ([]con
 			detected = append(detected, conn)
 		}
 
-		// Reset
 		currentImage = ""
 		currentService = ""
 		envVars = make(map[string]string)
@@ -110,48 +110,62 @@ func parseDockerComposeFile(filePath, projectPath, sourceFilename string) ([]con
 			continue
 		}
 
-		// Detect service declaration (e.g. "  postgres:", "  db:")
-		if strings.HasSuffix(trimmed, ":") && !strings.Contains(trimmed, " ") && len(line)-len(strings.TrimLeft(line, " ")) == 2 {
-			flushService()
-			currentService = strings.TrimSuffix(trimmed, ":")
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+
+		if trimmed == "services:" {
+			inServicesBlock = true
 			continue
 		}
 
-		// Detect image (e.g. "image: postgres:15-alpine")
-		if strings.HasPrefix(trimmed, "image:") {
-			parts := strings.SplitN(trimmed, ":", 2)
-			if len(parts) == 2 {
-				currentImage = strings.TrimSpace(parts[1])
-			}
-		}
-
-		// Detect ports (e.g. "- 5432:5432" or "ports: - '5432:5432'")
-		if strings.Contains(trimmed, ":") && (strings.HasPrefix(trimmed, "-") || strings.Contains(trimmed, "ports")) {
-			cleanPort := strings.TrimPrefix(trimmed, "-")
-			cleanPort = strings.Trim(strings.TrimSpace(cleanPort), `"'`)
-			portParts := strings.Split(cleanPort, ":")
-			if len(portParts) >= 2 {
-				p, _ := strconv.Atoi(strings.TrimSpace(portParts[0]))
-				if p > 0 {
-					hostPort = p
+		if inServicesBlock {
+			// Top-level service under services: (indent level 2 or 4)
+			if strings.HasSuffix(trimmed, ":") && indent <= 4 && !strings.Contains(trimmed, " ") {
+				svcName := strings.TrimSuffix(trimmed, ":")
+				if svcName != "environment" && svcName != "ports" && svcName != "volumes" && svcName != "networks" {
+					flushService()
+					currentService = svcName
+					continue
 				}
 			}
-		}
 
-		// Detect environment variables (e.g. "POSTGRES_USER: postgres" or "POSTGRES_PASSWORD=secret")
-		if strings.Contains(trimmed, "=") || (strings.Contains(trimmed, ":") && !strings.HasPrefix(trimmed, "image:") && !strings.HasPrefix(trimmed, "ports:")) {
-			var k, v string
-			if strings.Contains(trimmed, "=") {
-				parts := strings.SplitN(trimmed, "=", 2)
-				k, v = strings.TrimPrefix(parts[0], "-"), parts[1]
-			} else {
-				parts := strings.SplitN(trimmed, ":", 2)
-				k, v = strings.TrimPrefix(parts[0], "-"), parts[1]
-			}
-			k = strings.TrimSpace(k)
-			v = strings.Trim(strings.TrimSpace(v), `"'`)
-			if k != "" && v != "" {
-				envVars[k] = v
+			if currentService != "" {
+				// Detect image
+				if strings.HasPrefix(trimmed, "image:") {
+					parts := strings.SplitN(trimmed, ":", 2)
+					if len(parts) == 2 {
+						currentImage = strings.TrimSpace(parts[1])
+					}
+				}
+
+				// Detect ports (e.g. "- 5432:5432" or "- '5432:5432'")
+				if strings.HasPrefix(trimmed, "-") && strings.Contains(trimmed, ":") {
+					cleanPort := strings.TrimPrefix(trimmed, "-")
+					cleanPort = strings.Trim(strings.TrimSpace(cleanPort), `"'`)
+					portParts := strings.Split(cleanPort, ":")
+					if len(portParts) >= 2 {
+						p, _ := strconv.Atoi(strings.TrimSpace(portParts[0]))
+						if p > 0 {
+							hostPort = p
+						}
+					}
+				}
+
+				// Detect environment variables (e.g. "POSTGRES_USER: postgres" or "POSTGRES_PASSWORD=secret")
+				if strings.Contains(trimmed, ":") || strings.Contains(trimmed, "=") {
+					var k, v string
+					if strings.Contains(trimmed, "=") {
+						parts := strings.SplitN(trimmed, "=", 2)
+						k, v = strings.TrimPrefix(parts[0], "-"), parts[1]
+					} else {
+						parts := strings.SplitN(trimmed, ":", 2)
+						k, v = strings.TrimPrefix(parts[0], "-"), parts[1]
+					}
+					k = strings.TrimSpace(k)
+					v = strings.Trim(strings.TrimSpace(v), `"'`)
+					if k != "" && v != "" && k != "image" && k != "ports" && k != "command" && k != "volumes" {
+						envVars[k] = v
+					}
+				}
 			}
 		}
 	}
