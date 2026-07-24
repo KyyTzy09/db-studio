@@ -50,9 +50,10 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 
 			// Step 2: Auto-Detection Scanner if not found in global config
 			if !found || targetConn == nil {
-				fmt.Println("🔍 Running auto-detection scanners...")
+				fmt.Println("🔍 Running auto-detection scanners (.env & docker-compose)...")
 				compositeScanner := scanner.NewCompositeScanner(
 					scanner.NewEnvScanner(),
+					scanner.NewDockerComposeScanner(),
 				)
 
 				detectedConns, _ := compositeScanner.Scan(context.Background(), cwd)
@@ -84,20 +85,26 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 				return fmt.Errorf("failed to initialize driver: %w", err)
 			}
 
-			// Step 5: Start Chi HTTP Server & Open Browser
+			// Step 5: Start Chi HTTP Server (Automatic Port Fallback) & Open Browser
 			srv := httpServer.NewServer(driver, WebFS, portFlag)
 
-			go func() {
-				url := fmt.Sprintf("http://localhost:%d", portFlag)
-				fmt.Printf("🌐 Opening Web Studio at %s...\n", url)
-				openBrowser(url)
-			}()
-
-			return srv.ListenAndServe()
+			return srv.ListenAndServe(func(actualPort int) {
+				go func() {
+					url := fmt.Sprintf("http://localhost:%d", actualPort)
+					fmt.Printf("🌐 Opening Web Studio at %s...\n", url)
+					openBrowser(url)
+				}()
+			})
 		},
 	}
 
 	rootCmd.Flags().IntVarP(&portFlag, "port", "p", 8080, "Port to run the HTTP web studio server on")
+
+	// Register Subcommands
+	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(connectCmd)
+	rootCmd.AddCommand(doctorCmd)
+
 	return rootCmd
 }
 

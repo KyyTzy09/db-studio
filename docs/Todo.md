@@ -43,7 +43,7 @@
 ### 1.2 Auto-Detection Scanner Pipeline (`internal/scanner`)
 - [x] 🔴 `SavedConfigScanner`: Cek apakah proyek ini sudah tersimpan di global config. Jika ADA ➔ langsung gunakan.
 - [x] 🔴 `EnvScanner`: Parsing file `.env` lokal (deteksi `DATABASE_URL`, `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_PORT`)
-- [ ] 🟡 `DockerComposeScanner`: Parsing `docker-compose.yml` / `compose.yaml` untuk mengekstrak kredensial database container
+- [x] 🟡 `DockerComposeScanner`: Parsing `docker-compose.yml` / `compose.yaml` untuk mengekstrak kredensial database container
 - [x] 🔴 Logic Handler Hasil Scanning:
   - Jika **1 Config Ditemukan**: Otomatis pilih & jalankan server.
   - Jika **>1 Config Ditemukan**: Tampilkan pilihan prompt konfirmasi di CLI.
@@ -55,9 +55,9 @@
 
 ### 1.4 CLI Commands & Browser Launcher (`cmd/`)
 - [x] 🔴 Root Command `dbstudio`: Eksekusi Pipeline (Saved Config ➔ Scanner ➔ Wizard Fallback ➔ Start Chi Server ➔ Buka Browser)
-- [ ] 🔴 Command `dbstudio connect`: Langsung memicu CLI Wizard untuk menambah/mengedit koneksi
-- [ ] 🔴 Command `dbstudio doctor`: Mengecek *health* koneksi database yang tersimpan
-- [ ] 🔴 Command `dbstudio version`: Menampilkan informasi versi build
+- [x] 🔴 Command `dbstudio connect`: Langsung memicu CLI Wizard untuk menambah/mengedit koneksi
+- [x] 🔴 Command `dbstudio doctor`: Mengecek *health* koneksi database yang tersimpan
+- [x] 🔴 Command `dbstudio version`: Menampilkan informasi versi build
 - [x] 🔴 Utility *Browser Launcher* cross-platform (Windows `rundll32`, macOS `open`, Linux `xdg-open`)
 
 ---
@@ -132,7 +132,7 @@
 ### 5.1 Performance & Offline Testing
 - [x] 🔴 Verifikasi startup time target (< 3 detik dari command CLI hingga browser terbuka)
 - [x] 🔴 Pengujian alur 100% offline (tanpa koneksi internet)
-- [ ] 🟡 Automatic Port Fallback: Jika port default `8080` terpakai, pilih random available port secara otomatis
+- [x] 🟡 Automatic Port Fallback: Jika port default `8080` terpakai, pilih random available port secara otomatis
 
 ### 5.2 Binary Distribution
 - [x] 🔴 Compilation test untuk Windows (.exe), macOS, dan Linux

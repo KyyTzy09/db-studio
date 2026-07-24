@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"strings"
 
@@ -14,23 +15,29 @@ import (
 )
 
 type Server struct {
-	router *chi.Mux
-	driver db.Database
-	webFS  embed.FS
-	port   int
+	router     *chi.Mux
+	driver     db.Database
+	webFS      embed.FS
+	port       int
+	actualPort int
 }
 
 func NewServer(driver db.Database, webFS embed.FS, port int) *Server {
 	s := &Server{
-		router: chi.NewRouter(),
-		driver: driver,
-		webFS:  webFS,
-		port:   port,
+		router:     chi.NewRouter(),
+		driver:     driver,
+		webFS:      webFS,
+		port:       port,
+		actualPort: port,
 	}
 
 	s.setupMiddleware()
 	s.setupRoutes()
 	return s
+}
+
+func (s *Server) GetPort() int {
+	return s.actualPort
 }
 
 func (s *Server) setupMiddleware() {
@@ -92,8 +99,31 @@ func (s *Server) setupRoutes() {
 	}
 }
 
-func (s *Server) ListenAndServe() error {
-	addr := fmt.Sprintf(":%d", s.port)
-	fmt.Printf("🚀 DBStudio Web Server running at http://localhost:%d\n", s.port)
-	return http.ListenAndServe(addr, s.router)
+// ListenAndServe tries binding ports starting from s.port up to s.port+10 (Automatic Port Fallback)
+func (s *Server) ListenAndServe(onServerReady func(port int)) error {
+	var listener net.Listener
+	var err error
+	foundPort := s.port
+
+	for p := s.port; p <= s.port+10; p++ {
+		addr := fmt.Sprintf(":%d", p)
+		listener, err = net.Listen("tcp", addr)
+		if err == nil {
+			foundPort = p
+			break
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to bind HTTP server to any port between %d and %d: %w", s.port, s.port+10, err)
+	}
+
+	s.actualPort = foundPort
+	fmt.Printf("🚀 DBStudio Web Server running at http://localhost:%d\n", foundPort)
+
+	if onServerReady != nil {
+		onServerReady(foundPort)
+	}
+
+	return http.Serve(listener, s.router)
 }
