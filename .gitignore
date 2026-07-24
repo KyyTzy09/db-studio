@@ -1,0 +1,6 @@
+test
+bin/*.exe~
+bin/*.exe
+web/node_modules
+web/build
+web/.svelte-kit

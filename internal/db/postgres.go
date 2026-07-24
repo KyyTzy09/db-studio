@@ -195,6 +195,10 @@ func (p *PostgresDriver) ExecuteQuery(ctx context.Context, queryStr string, forc
 		resultRows = append(resultRows, rowMap)
 	}
 
+	if resultRows == nil {
+		resultRows = []map[string]interface{}{}
+	}
+
 	elapsed := time.Since(start).Milliseconds()
 	return &QueryResult{
 		Columns:      cols,

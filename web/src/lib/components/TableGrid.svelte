@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { fetchTableData, deleteTableRow, type QueryResult } from '$lib/api';
+	import { fetchTableData, fetchTableSchema, deleteTableRow, type QueryResult, type TableSchema } from '$lib/api';
 
 	let { tableName } = $props<{ tableName: string }>();
 
 	let dataResult = $state<QueryResult | null>(null);
+	let schema = $state<TableSchema | null>(null);
 	let loading = $state(true);
 	let errorMsg = $state<string | null>(null);
 	let searchQuery = $state('');
@@ -27,8 +27,14 @@
 	async function loadData(name: string) {
 		loading = true;
 		errorMsg = null;
+		currentPage = 1;
 		try {
-			dataResult = await fetchTableData(name);
+			const [dataRes, schemaRes] = await Promise.all([
+				fetchTableData(name).catch(() => null),
+				fetchTableSchema(name).catch(() => null)
+			]);
+			dataResult = dataRes;
+			schema = schemaRes;
 		} catch (err: any) {
 			errorMsg = err.message || 'Failed to load table data';
 		} finally {
@@ -36,12 +42,24 @@
 		}
 	}
 
+	let columns = $derived(() => {
+		if (dataResult && dataResult.columns && dataResult.columns.length > 0) {
+			return dataResult.columns;
+		}
+		if (schema && schema.columns && schema.columns.length > 0) {
+			return schema.columns.map((c) => c.name);
+		}
+		return [];
+	});
+
+	let rowsList = $derived(dataResult?.rows || []);
+
 	let filteredRows = $derived(
-		dataResult?.rows.filter((row) =>
-			Object.values(row).some((val) =>
+		rowsList.filter((row) =>
+			Object.values(row || {}).some((val) =>
 				String(val ?? '').toLowerCase().includes(searchQuery.toLowerCase())
 			)
-		) || []
+		)
 	);
 
 	let totalPages = $derived(Math.ceil(filteredRows.length / pageSize) || 1);
@@ -59,7 +77,6 @@
 		if (!selectedRowToDelete || !dataResult) return;
 		deleting = true;
 		try {
-			// Infer primary key or match all fields
 			await deleteTableRow(tableName, selectedRowToDelete);
 			showDeleteModal = false;
 			await loadData(tableName);
@@ -102,7 +119,7 @@
 		</button>
 	</div>
 
-	<!-- Main Content Grid -->
+	<!-- Main Table Data Grid Container -->
 	<div class="flex-1 overflow-auto custom-scrollbar p-6">
 		{#if loading}
 			<div class="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
@@ -113,20 +130,13 @@
 			<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
 				❌ Error: {errorMsg}
 			</div>
-		{:else if !dataResult || dataResult.rows.length === 0}
-			<div class="h-64 flex flex-col items-center justify-center text-slate-400 gap-2 border-2 border-dashed border-slate-800 rounded-xl">
-				<svg class="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-				</svg>
-				<span class="text-xs">Table "{tableName}" is empty.</span>
-			</div>
 		{:else}
 			<div class="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/60">
 				<table class="w-full text-left text-xs border-collapse">
 					<thead>
 						<tr class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
 							<th class="px-4 py-3 border-r border-slate-800/80 w-12 text-center">#</th>
-							{#each dataResult.columns as col}
+							{#each columns() as col}
 								<th class="px-4 py-3 border-r border-slate-800/80 font-mono text-[11px] text-indigo-300">
 									{col}
 								</th>
@@ -135,33 +145,47 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-slate-800/60">
-						{#each paginatedRows as row, i}
-							<tr class="hover:bg-slate-800/40 transition-colors group">
-								<td class="px-4 py-2.5 border-r border-slate-800/60 text-slate-500 text-center font-mono">
-									{(currentPage - 1) * pageSize + i + 1}
-								</td>
-								{#each dataResult.columns as col}
-									<td class="px-4 py-2.5 border-r border-slate-800/60 max-w-xs truncate font-mono text-slate-300">
-										{#if row[col] === null}
-											<span class="text-slate-600 italic">null</span>
-										{:else}
-											{String(row[col])}
-										{/if}
-									</td>
-								{/each}
-								<td class="px-4 py-2.5 text-center">
-									<button
-										onclick={() => openDeleteModal(row)}
-										class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
-										title="Delete row"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+						{#if paginatedRows.length === 0}
+							<tr>
+								<td colspan={columns().length + 2} class="px-6 py-12 text-center text-slate-500">
+									<div class="flex flex-col items-center justify-center gap-2">
+										<svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
 										</svg>
-									</button>
+										<span class="font-medium text-slate-400">Table "{tableName}" has no rows (0 rows).</span>
+										<span class="text-[11px] text-slate-600">Structure is displayed above. Use SQL Workspace to insert data.</span>
+									</div>
 								</td>
 							</tr>
-						{/each}
+						{:else}
+							{#each paginatedRows as row, i}
+								<tr class="hover:bg-slate-800/40 transition-colors group">
+									<td class="px-4 py-2.5 border-r border-slate-800/60 text-slate-500 text-center font-mono">
+										{(currentPage - 1) * pageSize + i + 1}
+									</td>
+									{#each columns() as col}
+										<td class="px-4 py-2.5 border-r border-slate-800/60 max-w-xs truncate font-mono text-slate-300">
+											{#if row[col] === null}
+												<span class="text-slate-600 italic">null</span>
+											{:else}
+												{String(row[col] ?? '')}
+											{/if}
+										</td>
+									{/each}
+									<td class="px-4 py-2.5 text-center">
+										<button
+											onclick={() => openDeleteModal(row)}
+											class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+											title="Delete row"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										</button>
+									</td>
+								</tr>
+							{/each}
+						{/if}
 					</tbody>
 				</table>
 			</div>
@@ -169,7 +193,7 @@
 	</div>
 
 	<!-- Pagination Controls -->
-	{#if dataResult && filteredRows.length > 0}
+	{#if columns().length > 0 && filteredRows.length > 0}
 		<div class="px-6 py-3 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
 			<div>
 				Showing Page <span class="font-bold text-white">{currentPage}</span> of <span class="font-bold text-white">{totalPages}</span>

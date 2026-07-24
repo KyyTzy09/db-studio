@@ -4,7 +4,7 @@
 	let searchQuery = $state('');
 
 	let filteredTables = $derived(
-		$tablesList.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
+		($tablesList || []).filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
 	function selectTable(name: string) {

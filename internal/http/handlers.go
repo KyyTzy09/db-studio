@@ -54,6 +54,9 @@ func (h *Handler) HandleGetTables(w http.ResponseWriter, r *http.Request) {
 		h.respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if tables == nil {
+		tables = []db.TableInfo{}
+	}
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{"tables": tables})
 }
 

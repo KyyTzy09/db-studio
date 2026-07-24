@@ -3,7 +3,8 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { sql } from '@codemirror/lang-sql';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import { executeRawQuery, type QueryResult } from '$lib/api';
+	import { executeRawQuery, fetchTables, type QueryResult } from '$lib/api';
+	import { tablesList } from '$lib/stores/dbStore';
 
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	let editorView = $state<EditorView | null>(null);
@@ -54,6 +55,13 @@
 			}
 			if (res.data) {
 				queryResult = res.data;
+				// Auto-refresh tables list if a DDL query (CREATE, DROP, ALTER) was executed
+				try {
+					const { tables } = await fetchTables();
+					tablesList.set(tables || []);
+				} catch (e) {
+					// Ignore background refresh errors
+				}
 			}
 		} catch (err: any) {
 			errorMsg = err.message || 'Failed to execute SQL query';
