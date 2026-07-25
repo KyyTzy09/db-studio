@@ -38,3 +38,20 @@ export interface SchemaGraph {
 	nodes: TableSchema[];
 	edges: ForeignKeyRelation[];
 }
+
+export interface ColumnSpec {
+	name: string;
+	data_type: string;
+	is_primary_key: boolean;
+	is_nullable: boolean;
+	default_value?: string;
+	auto_increment?: boolean;
+	is_foreign_key?: boolean;
+	fk_table?: string;
+	fk_column?: string;
+}
+
+export interface CreateTableRequest {
+	table_name: string;
+	columns: ColumnSpec[];
+}

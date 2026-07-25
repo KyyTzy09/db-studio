@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
+	import { tablesList } from '../../stores/dbStore';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
@@ -17,7 +18,7 @@
 		DialogFooter,
 		DialogDescription
 	} from '../shadcn/dialog';
-	import { Plus, Trash2, Code2, Table } from '@lucide/svelte';
+	import { Plus, Trash2, Code2, Table, Link2 } from '@lucide/svelte';
 
 	let { controller } = $props<{
 		controller: ReturnType<typeof useSchemaEditor>;
@@ -39,7 +40,7 @@
 </script>
 
 <Dialog bind:open={controller.isCreateTableOpen}>
-	<DialogContent class="max-w-3xl">
+	<DialogContent class="max-w-4xl">
 		<DialogHeader>
 			<DialogTitle class="flex items-center justify-between text-base font-bold">
 				<div class="flex items-center gap-2">
@@ -63,7 +64,7 @@
 				</div>
 			</DialogTitle>
 			<DialogDescription>
-				Design your database table structure and specify column parameters visually.
+				Design your database table structure, data types, and foreign key relationships visually.
 			</DialogDescription>
 		</DialogHeader>
 
@@ -88,11 +89,12 @@
 							<thead class="bg-muted text-muted-foreground text-[11px] uppercase sticky top-0 border-b border-border font-medium">
 								<tr>
 									<th class="px-3 py-2">Column Name</th>
-									<th class="px-3 py-2">Data Type</th>
+									<th class="px-3 py-2 w-36">Data Type</th>
 									<th class="px-2 py-2 text-center">PK</th>
 									<th class="px-2 py-2 text-center">Null</th>
 									<th class="px-2 py-2 text-center">Auto Inc</th>
-									<th class="px-3 py-2">Default</th>
+									<th class="px-2 py-2 text-center">FK</th>
+									<th class="px-3 py-2">Default / FK Reference</th>
 									<th class="px-2 py-2 text-center">Action</th>
 								</tr>
 							</thead>
@@ -107,7 +109,7 @@
 												class="h-8 text-xs font-mono"
 											/>
 										</td>
-										<td class="px-3 py-2">
+										<td class="px-3 py-2 w-36">
 											<Select type="single" bind:value={col.data_type}>
 												<SelectTrigger class="h-8 w-full text-xs font-mono">
 													{col.data_type || 'Type'}
@@ -136,17 +138,55 @@
 										<td class="px-2 py-2 text-center">
 											<input
 												type="checkbox"
-												bind:checked={col.auto_increment}
+												checked={col.auto_increment}
+												onchange={(e) => controller.toggleAutoIncrement(col, (e.target as HTMLInputElement).checked)}
+												class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
+											/>
+										</td>
+										<td class="px-2 py-2 text-center">
+											<input
+												type="checkbox"
+												checked={col.is_foreign_key}
+												onchange={(e) => {
+													col.is_foreign_key = (e.target as HTMLInputElement).checked;
+													if (col.is_foreign_key && !col.fk_column) {
+														col.fk_column = 'id';
+													}
+												}}
 												class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 											/>
 										</td>
 										<td class="px-3 py-2">
-											<Input
-												type="text"
-												bind:value={col.default_value}
-												placeholder="NULL / val"
-												class="h-8 text-xs font-mono"
-											/>
+											{#if col.is_foreign_key}
+												<div class="flex items-center gap-1.5">
+													<Link2 class="size-3.5 text-primary shrink-0" />
+													<Select type="single" bind:value={col.fk_table}>
+														<SelectTrigger class="h-8 w-32 text-[11px] font-mono">
+															{col.fk_table || 'Select Table'}
+														</SelectTrigger>
+														<SelectContent>
+															{#each $tablesList as tbl}
+																<SelectItem value={tbl.name} label={tbl.name} class="text-xs font-mono" />
+															{/each}
+														</SelectContent>
+													</Select>
+													<span class="text-muted-foreground text-[10px]">(</span>
+													<Input
+														type="text"
+														bind:value={col.fk_column}
+														placeholder="id"
+														class="h-8 w-20 text-xs font-mono"
+													/>
+													<span class="text-muted-foreground text-[10px]">)</span>
+												</div>
+											{:else}
+												<Input
+													type="text"
+													bind:value={col.default_value}
+													placeholder="NULL / val"
+													class="h-8 text-xs font-mono"
+												/>
+											{/if}
 										</td>
 										<td class="px-2 py-2 text-center">
 											<button

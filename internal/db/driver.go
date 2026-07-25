@@ -40,12 +40,14 @@ type QueryResult struct {
 
 // ColumnSpec defines a column for table creation and schema alteration
 type ColumnSpec struct {
-	Name          string `json:"name"`
-	DataType      string `json:"data_type"`
-	IsPrimaryKey  bool   `json:"is_primary_key"`
-	IsNullable    bool   `json:"is_nullable"`
-	DefaultValue  string `json:"default_value,omitempty"`
-	AutoIncrement bool   `json:"auto_increment,omitempty"`
+	Name             string `json:"name"`
+	DataType         string `json:"data_type"`
+	IsPrimaryKey     bool   `json:"is_primary_key"`
+	IsNullable       bool   `json:"is_nullable"`
+	DefaultValue     string `json:"default_value,omitempty"`
+	AutoIncrement    bool   `json:"auto_increment,omitempty"`
+	ForeignKeyTable  string `json:"fk_table,omitempty"`
+	ForeignKeyColumn string `json:"fk_column,omitempty"`
 }
 
 // CreateTableRequest holds the payload to create a new table

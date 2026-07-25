@@ -442,6 +442,12 @@ func (p *PostgresDriver) CreateTable(ctx context.Context, req CreateTableRequest
 		colDefs = append(colDefs, fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pks, ", ")))
 	}
 
+	for _, c := range req.Columns {
+		if c.ForeignKeyTable != "" && c.ForeignKeyColumn != "" {
+			colDefs = append(colDefs, fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)", c.Name, c.ForeignKeyTable, c.ForeignKeyColumn))
+		}
+	}
+
 	query := fmt.Sprintf("CREATE TABLE %s (\n  %s\n)", req.TableName, strings.Join(colDefs, ",\n  "))
 	_, err := p.db.ExecContext(ctx, query)
 	return err

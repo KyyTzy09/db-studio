@@ -8,6 +8,9 @@ export interface ColumnSpec {
 	is_nullable: boolean;
 	default_value: string;
 	auto_increment: boolean;
+	is_foreign_key?: boolean;
+	fk_table?: string;
+	fk_column?: string;
 }
 
 export function useSchemaEditor() {
@@ -69,13 +72,23 @@ export function useSchemaEditor() {
 			is_primary_key: false,
 			is_nullable: true,
 			default_value: '',
-			auto_increment: false
+			auto_increment: false,
+			is_foreign_key: false,
+			fk_table: '',
+			fk_column: 'id'
 		});
 	}
 
 	function removeColumnRow(index: number) {
 		if (columns.length <= 1) return;
 		columns.splice(index, 1);
+	}
+
+	function toggleAutoIncrement(col: ColumnSpec, value: boolean) {
+		col.auto_increment = value;
+		if (value) {
+			col.data_type = 'INTEGER';
+		}
 	}
 
 	// Live SQL Preview Calculation
@@ -96,6 +109,12 @@ export function useSchemaEditor() {
 
 		if (pks.length > 0) {
 			colDefs.push(`PRIMARY KEY (${pks.join(', ')})`);
+		}
+
+		for (const c of columns) {
+			if (c.is_foreign_key && c.fk_table && c.fk_column) {
+				colDefs.push(`FOREIGN KEY (${c.name}) REFERENCES ${c.fk_table}(${c.fk_column})`);
+			}
 		}
 
 		return `CREATE TABLE ${tableName.trim()} (\n  ${colDefs.join(',\n  ')}\n);`;
@@ -211,6 +230,7 @@ export function useSchemaEditor() {
 		closeAddColumnModal,
 		addColumnRow,
 		removeColumnRow,
+		toggleAutoIncrement,
 		submitCreateTable,
 		submitAddColumn,
 		submitDropColumn
