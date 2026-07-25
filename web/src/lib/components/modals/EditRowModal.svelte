@@ -60,6 +60,9 @@
 						{#if col.is_primary_key}
 							<span class="ml-1 rounded bg-warning/20 px-1 py-0.5 text-[9px] text-warning font-bold">PK (Locked)</span>
 						{/if}
+						{#if col.is_foreign_key}
+							<span class="ml-1 rounded bg-primary/20 px-1 py-0.5 text-[9px] text-primary font-bold">FK</span>
+						{/if}
 					</Label>
 
 					<Input

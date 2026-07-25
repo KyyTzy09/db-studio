@@ -117,7 +117,8 @@ func (p *PostgresDriver) GetSchema(ctx context.Context, tableName string) (*Tabl
 			c.data_type, 
 			c.is_nullable = 'YES' as is_nullable,
 			COALESCE(c.column_default, '') as default_value,
-			CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key
+			CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key,
+			CASE WHEN fk.column_name IS NOT NULL THEN true ELSE false END as is_foreign_key
 		FROM information_schema.columns c
 		LEFT JOIN (
 			SELECT kcu.column_name
@@ -126,6 +127,13 @@ func (p *PostgresDriver) GetSchema(ctx context.Context, tableName string) (*Tabl
 			  ON tc.constraint_name = kcu.constraint_name
 			WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_name = $1
 		) pk ON c.column_name = pk.column_name
+		LEFT JOIN (
+			SELECT kcu.column_name
+			FROM information_schema.table_constraints tc
+			JOIN information_schema.key_column_usage kcu 
+			  ON tc.constraint_name = kcu.constraint_name
+			WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = $1
+		) fk ON c.column_name = fk.column_name
 		WHERE c.table_name = $1 AND c.table_schema = 'public'
 		ORDER BY c.ordinal_position;
 	`
@@ -139,8 +147,13 @@ func (p *PostgresDriver) GetSchema(ctx context.Context, tableName string) (*Tabl
 	var columns []ColumnInfo
 	for rows.Next() {
 		var col ColumnInfo
-		if err := rows.Scan(&col.Name, &col.DataType, &col.IsNullable, &col.DefaultValue, &col.IsPrimaryKey); err != nil {
+		if err := rows.Scan(&col.Name, &col.DataType, &col.IsNullable, &col.DefaultValue, &col.IsPrimaryKey, &col.IsForeignKey); err != nil {
 			return nil, err
+		}
+		defLower := strings.ToLower(col.DefaultValue)
+		dtLower := strings.ToLower(col.DataType)
+		if strings.Contains(defLower, "nextval") || strings.Contains(defLower, "identity") || strings.Contains(dtLower, "serial") {
+			col.IsAutoIncrement = true
 		}
 		columns = append(columns, col)
 	}

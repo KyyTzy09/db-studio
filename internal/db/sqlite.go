@@ -105,6 +105,20 @@ func (s *SQLiteDriver) GetSchema(ctx context.Context, tableName string) (*TableS
 	}
 	defer rows.Close()
 
+	fkCols := make(map[string]bool)
+	fkQuery := fmt.Sprintf("PRAGMA foreign_key_list(`%s`);", tableName)
+	fkRows, fkErr := s.db.QueryContext(ctx, fkQuery)
+	if fkErr == nil {
+		for fkRows.Next() {
+			var id, seq int
+			var targetTable, sourceCol, targetCol, onUpdate, onDelete, match string
+			if err := fkRows.Scan(&id, &seq, &targetTable, &sourceCol, &targetCol, &onUpdate, &onDelete, &match); err == nil {
+				fkCols[sourceCol] = true
+			}
+		}
+		fkRows.Close()
+	}
+
 	var columns []ColumnInfo
 	for rows.Next() {
 		var cid int
@@ -116,12 +130,17 @@ func (s *SQLiteDriver) GetSchema(ctx context.Context, tableName string) (*TableS
 			return nil, err
 		}
 
+		isPK := pk > 0
+		isAutoInc := isPK && (strings.EqualFold(dataType, "INTEGER") || strings.EqualFold(dataType, "INT"))
+
 		columns = append(columns, ColumnInfo{
-			Name:         name,
-			DataType:     dataType,
-			IsNullable:   notNull == 0,
-			IsPrimaryKey: pk > 0,
-			DefaultValue: dfltValue.String,
+			Name:            name,
+			DataType:        dataType,
+			IsNullable:      notNull == 0,
+			IsPrimaryKey:    isPK,
+			IsForeignKey:    fkCols[name],
+			IsAutoIncrement: isAutoInc,
+			DefaultValue:    dfltValue.String,
 		})
 	}
 

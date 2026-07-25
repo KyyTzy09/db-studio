@@ -61,7 +61,14 @@
 						{col.name}
 						<span class="text-[10px] text-muted-foreground font-mono font-normal">({col.data_type})</span>
 						{#if col.is_primary_key}
-							<span class="ml-1 rounded bg-warning/20 px-1 py-0.5 text-[9px] text-warning font-bold">PK (Auto-ID)</span>
+							{#if col.is_auto_increment}
+								<span class="ml-1 rounded bg-warning/20 px-1 py-0.5 text-[9px] text-warning font-bold">PK (Auto-ID)</span>
+							{:else}
+								<span class="ml-1 rounded bg-warning/20 px-1 py-0.5 text-[9px] text-warning font-bold">PK</span>
+							{/if}
+						{/if}
+						{#if col.is_foreign_key}
+							<span class="ml-1 rounded bg-primary/20 px-1 py-0.5 text-[9px] text-primary font-bold">FK</span>
 						{/if}
 						{#if !col.is_nullable && !col.is_primary_key && !col.default_value}
 							<span class="text-destructive">*</span>
@@ -73,7 +80,7 @@
 						type="text"
 						bind:value={controller.formData[col.name]}
 						placeholder={col.is_primary_key
-							? 'Auto-generated / optional'
+							? (col.is_auto_increment ? 'Auto-generated / optional' : 'Enter Primary Key value...')
 							: col.default_value
 								? `Default: ${col.default_value}`
 								: col.is_nullable

@@ -8,11 +8,13 @@ import (
 
 // ColumnInfo holds column metadata
 type ColumnInfo struct {
-	Name         string `json:"name"`
-	DataType     string `json:"data_type"`
-	IsNullable   bool   `json:"is_nullable"`
-	IsPrimaryKey bool   `json:"is_primary_key"`
-	DefaultValue string `json:"default_value,omitempty"`
+	Name            string `json:"name"`
+	DataType        string `json:"data_type"`
+	IsNullable      bool   `json:"is_nullable"`
+	IsPrimaryKey    bool   `json:"is_primary_key"`
+	IsForeignKey    bool   `json:"is_foreign_key,omitempty"`
+	IsAutoIncrement bool   `json:"is_auto_increment,omitempty"`
+	DefaultValue    string `json:"default_value,omitempty"`
 }
 
 // TableInfo holds high-level table description

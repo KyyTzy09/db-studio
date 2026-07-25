@@ -112,6 +112,24 @@ func (m *MySQLDriver) GetSchema(ctx context.Context, tableName string) (*TableSc
 	}
 	defer rows.Close()
 
+	// Fetch foreign key column names for this table
+	fkCols := make(map[string]bool)
+	fkQuery := `
+		SELECT COLUMN_NAME 
+		FROM information_schema.KEY_COLUMN_USAGE 
+		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL;
+	`
+	fkRows, fkErr := m.db.QueryContext(ctx, fkQuery, tableName)
+	if fkErr == nil {
+		for fkRows.Next() {
+			var colName string
+			if err := fkRows.Scan(&colName); err == nil {
+				fkCols[colName] = true
+			}
+		}
+		fkRows.Close()
+	}
+
 	var columns []ColumnInfo
 	for rows.Next() {
 		var colName, dataType, isNull, keyStr string
@@ -121,12 +139,17 @@ func (m *MySQLDriver) GetSchema(ctx context.Context, tableName string) (*TableSc
 			return nil, err
 		}
 
+		isAutoInc := strings.Contains(strings.ToLower(extra.String), "auto_increment")
+		isFK := fkCols[colName]
+
 		columns = append(columns, ColumnInfo{
-			Name:         colName,
-			DataType:     dataType,
-			IsNullable:   isNull == "YES",
-			IsPrimaryKey: keyStr == "PRI",
-			DefaultValue: defaultVal.String,
+			Name:            colName,
+			DataType:        dataType,
+			IsNullable:      isNull == "YES",
+			IsPrimaryKey:    keyStr == "PRI",
+			IsForeignKey:    isFK,
+			IsAutoIncrement: isAutoInc,
+			DefaultValue:    defaultVal.String,
 		})
 	}
 
