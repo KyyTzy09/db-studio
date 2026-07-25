@@ -5,6 +5,8 @@
 	import EditRowModal from '../modals/EditRowModal.svelte';
 	import ImportModal from '../modals/ImportModal.svelte';
 	import { useEditRow } from '../../hooks/useEditRow.svelte';
+	import { useInsertRow } from '../../hooks/useInsertRow.svelte';
+	import { useImportData } from '../../hooks/useImportData.svelte';
 	import type { QueryResult, TableSchema } from '$lib/api';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
@@ -31,10 +33,6 @@
 	// Pagination
 	let currentPage = $state(1);
 	let pageSize = $state(15);
-
-	// Modals State
-	let showInsertModal = $state(false);
-	let showImportModal = $state(false);
 
 	// Delete Confirmation Modal
 	let showDeleteModal = $state(false);
@@ -78,10 +76,19 @@
 	let schemaColumns = $derived(schema?.columns || []);
 	let rowsList = $derived(dataResult?.rows || []);
 
-	// Initialize Edit Row Hook controller
+	// Initialize Hook Controllers
 	const editRowController = useEditRow(
 		() => tableName,
 		() => schemaColumns
+	);
+
+	const insertRowController = useInsertRow(
+		() => tableName,
+		() => schemaColumns
+	);
+
+	const importDataController = useImportData(
+		() => tableName
 	);
 
 	let filteredRows = $derived(
@@ -149,7 +156,7 @@
 			<Button
 				variant="default"
 				size="sm"
-				onclick={() => (showInsertModal = true)}
+				onclick={() => insertRowController.openModal()}
 			>
 				<Plus class="size-3.5 mr-1" />
 				Add Row
@@ -158,7 +165,7 @@
 			<Button
 				variant="outline"
 				size="sm"
-				onclick={() => (showImportModal = true)}
+				onclick={() => importDataController.openModal()}
 			>
 				<Upload class="size-3.5 mr-1" />
 				Import
@@ -299,12 +306,11 @@
 	{/if}
 </div>
 
-<!-- Modals with Shadcn Dialog & Two-Way State Binding -->
+<!-- Modals with Shadcn Dialog & Controller Props -->
 <InsertRowModal
 	{tableName}
 	columns={schemaColumns}
-	bind:isOpen={showInsertModal}
-	onClose={() => (showInsertModal = false)}
+	controller={insertRowController}
 	onSuccess={() => loadData(tableName)}
 />
 
@@ -317,8 +323,7 @@
 
 <ImportModal
 	{tableName}
-	bind:isOpen={showImportModal}
-	onClose={() => (showImportModal = false)}
+	controller={importDataController}
 	onSuccess={() => loadData(tableName)}
 />
 

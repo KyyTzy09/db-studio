@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ColumnInfo } from '../../../data/models';
-	import { insertTableRow } from '../../../data/services';
+	import type { useInsertRow } from '../../hooks/useInsertRow.svelte';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
@@ -17,63 +17,17 @@
 	let {
 		tableName,
 		columns = [],
-		isOpen = $bindable(false),
-		onClose,
+		controller,
 		onSuccess
 	} = $props<{
 		tableName: string;
 		columns?: ColumnInfo[];
-		isOpen: boolean;
-		onClose?: () => void;
+		controller: ReturnType<typeof useInsertRow>;
 		onSuccess?: () => void;
 	}>();
-
-	let formData = $state<Record<string, any>>({});
-	let isSubmitting = $state(false);
-	let errorMessage = $state('');
-
-	function handleOpenChange(open: boolean) {
-		if (open) {
-			errorMessage = '';
-			const initial: Record<string, any> = {};
-			columns.forEach((col: any) => {
-				initial[col.name] = '';
-			});
-			formData = initial;
-		} else {
-			handleClose();
-		}
-	}
-
-	function handleClose() {
-		isOpen = false;
-		if (onClose) onClose();
-	}
-
-	async function handleSubmit() {
-		isSubmitting = true;
-		errorMessage = '';
-		try {
-			const payload: Record<string, any> = {};
-			for (const col of columns) {
-				const val = formData[col.name];
-				if (val !== '' && val !== null && val !== undefined) {
-					payload[col.name] = val;
-				}
-			}
-
-			await insertTableRow(tableName, payload);
-			if (onSuccess) onSuccess();
-			handleClose();
-		} catch (err: any) {
-			errorMessage = err.message || 'Failed to insert row';
-		} finally {
-			isSubmitting = false;
-		}
-	}
 </script>
 
-<Dialog bind:open={isOpen} onOpenChange={handleOpenChange}>
+<Dialog bind:open={controller.isOpen}>
 	<DialogContent class="max-w-lg">
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-1.5 text-base font-bold">
@@ -84,9 +38,9 @@
 			</DialogDescription>
 		</DialogHeader>
 
-		{#if errorMessage}
+		{#if controller.errorMessage}
 			<div class="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
-				⚠️ {errorMessage}
+				⚠️ {controller.errorMessage}
 			</div>
 		{/if}
 
@@ -94,7 +48,7 @@
 			id="insert-row-form"
 			onsubmit={(e) => {
 				e.preventDefault();
-				handleSubmit();
+				controller.submitForm(onSuccess);
 			}}
 			class="max-h-[60vh] overflow-y-auto pr-1 space-y-4 text-xs py-2"
 		>
@@ -117,7 +71,7 @@
 					<Input
 						id={`insert-${col.name}`}
 						type="text"
-						bind:value={formData[col.name]}
+						bind:value={controller.formData[col.name]}
 						placeholder={col.is_primary_key
 							? 'Auto-generated / optional'
 							: col.default_value
@@ -132,11 +86,11 @@
 		</form>
 
 		<DialogFooter class="pt-2 border-t border-border">
-			<Button type="button" variant="outline" size="sm" onclick={handleClose}>
+			<Button type="button" variant="outline" size="sm" onclick={controller.closeModal}>
 				Cancel
 			</Button>
-			<Button type="submit" form="insert-row-form" size="sm" disabled={isSubmitting}>
-				{isSubmitting ? 'Inserting...' : 'Insert Row'}
+			<Button type="submit" form="insert-row-form" size="sm" disabled={controller.isSubmitting}>
+				{controller.isSubmitting ? 'Inserting...' : 'Insert Row'}
 			</Button>
 		</DialogFooter>
 	</DialogContent>
