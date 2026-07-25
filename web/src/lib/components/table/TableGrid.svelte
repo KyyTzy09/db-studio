@@ -7,6 +7,16 @@
 	import type { QueryResult, TableSchema } from '$lib/api';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
+	import {
+		AlertDialog,
+		AlertDialogContent,
+		AlertDialogHeader,
+		AlertDialogTitle,
+		AlertDialogDescription,
+		AlertDialogFooter,
+		AlertDialogCancel,
+		AlertDialogAction
+	} from '../shadcn/alert-dialog';
 	import { Search, Plus, Upload, Download, RefreshCw, Pencil, Trash2, Database, AlertTriangle } from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
@@ -195,7 +205,7 @@
 				❌ Error: {errorMsg}
 			</div>
 		{:else}
-			<div class="border border-border rounded-xl overflow-hidden shadow-sm bg-card">
+			<div class="border border-border rounded-xl overflow-hidden shadow-xs bg-card">
 				<table class="w-full text-left text-xs border-collapse">
 					<thead>
 						<tr class="bg-secondary/60 text-muted-foreground font-semibold border-b border-border uppercase tracking-wider">
@@ -289,7 +299,7 @@
 	{/if}
 </div>
 
-<!-- Modals -->
+<!-- Modals with Shadcn Dialog & Two-Way State Binding -->
 <InsertRowModal
 	{tableName}
 	columns={schemaColumns}
@@ -314,24 +324,24 @@
 	onSuccess={() => loadData(tableName)}
 />
 
-<!-- Delete Confirmation Modal -->
-{#if showDeleteModal}
-	<div class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 cursor-pointer" onclick={(e) => { if (e.target === e.currentTarget) showDeleteModal = false; }} role="dialog" tabindex="-1">
-		<div class="bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl cursor-default" onclick={(e) => e.stopPropagation()} role="document" tabindex="-1">
-			<h3 class="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+<!-- Delete Confirmation Shadcn AlertDialog -->
+<AlertDialog bind:open={showDeleteModal}>
+	<AlertDialogContent class="max-w-md">
+		<AlertDialogHeader>
+			<AlertDialogTitle class="flex items-center gap-2 text-foreground">
 				<AlertTriangle class="size-5 text-warning" /> Confirm Delete Row
-			</h3>
-			<p class="text-xs text-muted-foreground mb-4 leading-relaxed">
-				Are you sure you want to delete this row from table <span class="font-bold text-foreground">"{tableName}"</span>?
-			</p>
-			<div class="flex justify-end gap-3">
-				<Button variant="outline" size="sm" onclick={() => (showDeleteModal = false)}>
-					Cancel
-				</Button>
-				<Button variant="destructive" size="sm" onclick={confirmDelete} disabled={deleting}>
-					{deleting ? 'Deleting...' : 'Delete Row'}
-				</Button>
-			</div>
-		</div>
-	</div>
-{/if}
+			</AlertDialogTitle>
+			<AlertDialogDescription>
+				Are you sure you want to delete this row from table <span class="font-bold text-foreground font-mono">"{tableName}"</span>?
+			</AlertDialogDescription>
+		</AlertDialogHeader>
+		<AlertDialogFooter>
+			<AlertDialogCancel onclick={() => (showDeleteModal = false)}>
+				Cancel
+			</AlertDialogCancel>
+			<AlertDialogAction onclick={confirmDelete} disabled={deleting} class="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+				{deleting ? 'Deleting...' : 'Delete Row'}
+			</AlertDialogAction>
+		</AlertDialogFooter>
+	</AlertDialogContent>
+</AlertDialog>
