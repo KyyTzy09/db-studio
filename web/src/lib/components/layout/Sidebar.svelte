@@ -6,6 +6,8 @@
 	import CreateTableModal from '../modals/CreateTableModal.svelte';
 	import { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
 	import { Database, Table, Search, Sun, Moon, RefreshCw, Plus } from '@lucide/svelte';
+	import Button from '../shadcn/button/button.svelte';
+	import Input from '../shadcn/input/input.svelte';
 
 	let { selectedTable, onSelectTable, activeTab, onSelectTab } = $props<{
 		selectedTable: string | null;

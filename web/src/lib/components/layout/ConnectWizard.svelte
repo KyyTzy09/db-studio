@@ -2,6 +2,12 @@
 	import { Input } from '../shadcn/input';
 	import { Button } from '../shadcn/button';
 	import { Label } from '../shadcn/label';
+	import {
+		Select,
+		SelectTrigger,
+		SelectContent,
+		SelectItem
+	} from '../shadcn/select';
 	import { Database, Wrench } from '@lucide/svelte';
 
 	let driver = $state('postgres');
@@ -14,9 +20,10 @@
 
 	let saving = $state(false);
 
-	function updatePortDefault() {
-		if (driver === 'postgres') port = 5432;
-		if (driver === 'mysql') port = 3306;
+	function updatePortDefault(val: string) {
+		driver = val;
+		if (val === 'postgres') port = 5432;
+		if (val === 'mysql') port = 3306;
 	}
 </script>
 
@@ -33,16 +40,20 @@
 		<div class="space-y-4 text-xs">
 			<div>
 				<Label for="driver-select" class="block font-medium mb-1.5 text-foreground">Database Type</Label>
-				<select
-					id="driver-select"
-					bind:value={driver}
-					onchange={updatePortDefault}
-					class="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+				<Select
+					type="single"
+					value={driver}
+					onValueChange={(val) => updatePortDefault(val)}
 				>
-					<option value="postgres">PostgreSQL</option>
-					<option value="mysql">MySQL / MariaDB</option>
-					<option value="sqlite">SQLite</option>
-				</select>
+					<SelectTrigger id="driver-select" class="w-full h-9 text-xs">
+						{driver === 'postgres' ? 'PostgreSQL' : driver === 'mysql' ? 'MySQL / MariaDB' : 'SQLite'}
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="postgres" label="PostgreSQL" class="text-xs" />
+						<SelectItem value="mysql" label="MySQL / MariaDB" class="text-xs" />
+						<SelectItem value="sqlite" label="SQLite" class="text-xs" />
+					</SelectContent>
+				</Select>
 			</div>
 
 			{#if driver === 'sqlite'}

@@ -4,6 +4,12 @@
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
 	import {
+		Select,
+		SelectTrigger,
+		SelectContent,
+		SelectItem
+	} from '../shadcn/select';
+	import {
 		Dialog,
 		DialogContent,
 		DialogHeader,
@@ -66,15 +72,16 @@
 				<Label for="add-col-datatype" class="block text-xs font-semibold text-foreground mb-1">
 					Data Type
 				</Label>
-				<select
-					id="add-col-datatype"
-					bind:value={controller.newColumn.data_type}
-					class="h-9 w-full rounded-md border border-border bg-background px-3 text-xs font-mono focus:outline-hidden focus:ring-1 focus:ring-primary"
-				>
-					{#each commonDataTypes as dt}
-						<option value={dt}>{dt}</option>
-					{/each}
-				</select>
+				<Select type="single" bind:value={controller.newColumn.data_type}>
+					<SelectTrigger id="add-col-datatype" class="w-full h-9 text-xs font-mono">
+						{controller.newColumn.data_type || 'Select Data Type'}
+					</SelectTrigger>
+					<SelectContent>
+						{#each commonDataTypes as dt}
+							<SelectItem value={dt} label={dt} class="text-xs font-mono" />
+						{/each}
+					</SelectContent>
+				</Select>
 			</div>
 
 			<div>
@@ -91,22 +98,22 @@
 			</div>
 
 			<div class="flex items-center gap-6 pt-1">
-				<label class="flex items-center gap-2 cursor-pointer text-xs">
+				<label class="flex items-center gap-2 cursor-pointer text-xs select-none">
 					<input
 						type="checkbox"
 						bind:checked={controller.newColumn.is_nullable}
-						class="rounded border-border accent-primary size-4"
+						class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 					/>
-					<span>Allow NULL</span>
+					<span class="text-foreground font-medium">Allow NULL</span>
 				</label>
 
-				<label class="flex items-center gap-2 cursor-pointer text-xs">
+				<label class="flex items-center gap-2 cursor-pointer text-xs select-none">
 					<input
 						type="checkbox"
 						bind:checked={controller.newColumn.is_primary_key}
-						class="rounded border-border accent-primary size-4"
+						class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 					/>
-					<span>Primary Key</span>
+					<span class="text-foreground font-medium">Primary Key</span>
 				</label>
 			</div>
 		</form>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TableSchema } from '../../data/models';
+	import type { TableSchema } from '$lib/api';
 	import type { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
 	import { Button } from '../shadcn/button';
 	import { Plus, Trash2, Key, Layers } from '@lucide/svelte';

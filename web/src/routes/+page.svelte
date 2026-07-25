@@ -21,11 +21,19 @@
 
 	let { data } = $props();
 
+	// Synchronous store initialization from SvelteKit PageLoad data
+	if (data) {
+		if (data.status) connectionStatus.set(data.status);
+		if (data.tables) tablesList.set(data.tables || []);
+		if (data.tables && data.tables.length > 0 && !$selectedTable) {
+			selectedTable.set(data.tables[0].name);
+		}
+	}
+
 	$effect(() => {
 		if (data) {
-			connectionStatus.set(data.status);
-			tablesList.set(data.tables || []);
-
+			if (data.status) connectionStatus.set(data.status);
+			if (data.tables) tablesList.set(data.tables || []);
 			if (data.tables && data.tables.length > 0 && !$selectedTable) {
 				selectedTable.set(data.tables[0].name);
 			}
@@ -38,7 +46,7 @@
 </svelte:head>
 
 <div class="flex h-screen w-screen bg-background text-foreground font-sans overflow-hidden antialiased select-none">
-	{#if $isLoading}
+	{#if $isLoading || !$connectionStatus}
 		<div class="flex-1 flex flex-col items-center justify-center gap-3">
 			<div class="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
 			<span class="text-xs text-muted-foreground font-medium">Initializing DBStudio Web Studio...</span>
@@ -60,7 +68,7 @@
 				</Button>
 			</div>
 		</div>
-	{:else if $connectionStatus && !$connectionStatus.connected}
+	{:else if !$connectionStatus.connected}
 		<ConnectWizard />
 	{:else}
 		<!-- Main DBStudio Layout -->

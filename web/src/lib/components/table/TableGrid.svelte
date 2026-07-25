@@ -14,6 +14,12 @@
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import {
+		Select,
+		SelectTrigger,
+		SelectContent,
+		SelectItem
+	} from '../shadcn/select';
+	import {
 		AlertDialog,
 		AlertDialogContent,
 		AlertDialogHeader,
@@ -252,27 +258,36 @@
 				</span>
 
 				<!-- Column Selector -->
-				<select
-					bind:value={selectedCol}
-					class="h-8 rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-				>
-					{#each columns() as col}
-						<option value={col}>{col}</option>
-					{/each}
-				</select>
+				<Select type="single" bind:value={selectedCol}>
+					<SelectTrigger class="h-8 min-w-32 text-xs font-mono">
+						{selectedCol || 'Select Column'}
+					</SelectTrigger>
+					<SelectContent>
+						{#each columns() as col}
+							<SelectItem value={col} label={col} class="text-xs font-mono" />
+						{/each}
+					</SelectContent>
+				</Select>
 
 				<!-- Operator Selector -->
-				<select
-					bind:value={selectedOp}
-					class="h-8 rounded-md border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-				>
-					<option value="contains">contains</option>
-					<option value="equals">equals (=)</option>
-					<option value="gt">greater than (&gt;)</option>
-					<option value="lt">less than (&lt;)</option>
-					<option value="starts">starts with</option>
-					<option value="is_null">is NULL / Empty</option>
-				</select>
+				<Select type="single" bind:value={selectedOp}>
+					<SelectTrigger class="h-8 min-w-36 text-xs">
+						{selectedOp === 'contains' ? 'contains' :
+						 selectedOp === 'equals' ? 'equals (=)' :
+						 selectedOp === 'gt' ? 'greater than (>)' :
+						 selectedOp === 'lt' ? 'less than (<)' :
+						 selectedOp === 'starts' ? 'starts with' :
+						 selectedOp === 'is_null' ? 'is NULL / Empty' : selectedOp}
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="contains" label="contains" class="text-xs" />
+						<SelectItem value="equals" label="equals (=)" class="text-xs" />
+						<SelectItem value="gt" label="greater than (>)" class="text-xs" />
+						<SelectItem value="lt" label="less than (<)" class="text-xs" />
+						<SelectItem value="starts" label="starts with" class="text-xs" />
+						<SelectItem value="is_null" label="is NULL / Empty" class="text-xs" />
+					</SelectContent>
+				</Select>
 
 				<!-- Filter Value Input -->
 				{#if selectedOp !== 'is_null'}

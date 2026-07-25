@@ -4,6 +4,12 @@
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
 	import {
+		Select,
+		SelectTrigger,
+		SelectContent,
+		SelectItem
+	} from '../shadcn/select';
+	import {
 		Dialog,
 		DialogContent,
 		DialogHeader,
@@ -102,34 +108,36 @@
 											/>
 										</td>
 										<td class="px-3 py-2">
-											<select
-												bind:value={col.data_type}
-												class="h-8 w-full rounded-md border border-border bg-background px-2 text-xs font-mono focus:outline-hidden focus:ring-1 focus:ring-primary"
-											>
-												{#each commonDataTypes as dt}
-													<option value={dt}>{dt}</option>
-												{/each}
-											</select>
+											<Select type="single" bind:value={col.data_type}>
+												<SelectTrigger class="h-8 w-full text-xs font-mono">
+													{col.data_type || 'Type'}
+												</SelectTrigger>
+												<SelectContent>
+													{#each commonDataTypes as dt}
+														<SelectItem value={dt} label={dt} class="text-xs font-mono" />
+													{/each}
+												</SelectContent>
+											</Select>
 										</td>
 										<td class="px-2 py-2 text-center">
 											<input
 												type="checkbox"
 												bind:checked={col.is_primary_key}
-												class="rounded border-border accent-primary size-4"
+												class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 											/>
 										</td>
 										<td class="px-2 py-2 text-center">
 											<input
 												type="checkbox"
 												bind:checked={col.is_nullable}
-												class="rounded border-border accent-primary size-4"
+												class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 											/>
 										</td>
 										<td class="px-2 py-2 text-center">
 											<input
 												type="checkbox"
 												bind:checked={col.auto_increment}
-												class="rounded border-border accent-primary size-4"
+												class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
 											/>
 										</td>
 										<td class="px-3 py-2">
