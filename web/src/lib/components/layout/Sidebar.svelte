@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { connectionStatus, tablesList } from '../../stores/dbStore';
-	import { fetchConnectionStatus, fetchTables, type TableInfo } from '../../../data/services';
+	import { fetchConnectionStatus, fetchTables } from '../../../data/services';
+	import type { TableInfo } from '$lib/api';
+	import { Input } from '../shadcn/input';
+	import { Button } from '../shadcn/button';
+	import { Database, Table, Search, Sun, Moon, RefreshCw } from '@lucide/svelte';
 
 	let { selectedTable, onSelectTable, activeTab, onSelectTab } = $props<{
 		selectedTable: string | null;
@@ -12,8 +16,17 @@
 
 	let searchQuery = $state('');
 	let loading = $state(true);
+	let isDark = $state(true);
 
 	onMount(async () => {
+		// Initialize theme state from html class or dark default
+		if (typeof document !== 'undefined') {
+			isDark = document.documentElement.classList.contains('dark') || true;
+			if (isDark) {
+				document.documentElement.classList.add('dark');
+			}
+		}
+
 		try {
 			const connStatus = await fetchConnectionStatus();
 			connectionStatus.set(connStatus);
@@ -32,6 +45,27 @@
 		}
 	});
 
+	function toggleTheme() {
+		isDark = !isDark;
+		if (isDark) {
+			document.documentElement.classList.add('dark');
+		} else {
+			document.documentElement.classList.remove('dark');
+		}
+	}
+
+	async function refreshTables() {
+		loading = true;
+		try {
+			const { tables } = await fetchTables();
+			tablesList.set(tables || []);
+		} catch (err) {
+			console.error('Refresh tables error:', err);
+		} finally {
+			loading = false;
+		}
+	}
+
 	let filteredTables = $derived(
 		($tablesList || []).filter((t: TableInfo) =>
 			t.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -39,60 +73,79 @@
 	);
 </script>
 
-<aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-full select-none">
+<aside class="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full select-none transition-colors">
 	<!-- Brand Header -->
-	<div class="h-14 px-4 border-b border-slate-800 flex items-center justify-between">
+	<div class="h-14 px-4 border-b border-sidebar-border flex items-center justify-between">
 		<div class="flex items-center gap-2.5">
-			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
-				⚡
+			<div class="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-sm">
+				<Database class="size-4" />
 			</div>
 			<div>
-				<h1 class="font-bold text-white text-sm tracking-wide">DBStudio</h1>
-				<p class="text-[10px] text-slate-400 font-mono">v0.1.0-mvp</p>
+				<h1 class="font-bold text-foreground text-sm tracking-wide">DBStudio</h1>
+				<p class="text-[10px] text-muted-foreground font-mono">v0.1.0-sleek</p>
 			</div>
 		</div>
-		<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-			<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-			{$connectionStatus?.config?.driver || 'Connected'}
-		</span>
+
+		<!-- Theme Toggle & Refresh Actions -->
+		<div class="flex items-center gap-1">
+			<Button variant="ghost" size="icon-xs" onclick={refreshTables} title="Refresh tables list">
+				<RefreshCw class="size-3.5 text-muted-foreground hover:text-foreground" />
+			</Button>
+			<Button variant="ghost" size="icon-xs" onclick={toggleTheme} title="Toggle Dark/Light Mode">
+				{#if isDark}
+					<Sun class="size-3.5 text-warning" />
+				{:else}
+					<Moon class="size-3.5 text-primary" />
+				{/if}
+			</Button>
+		</div>
 	</div>
 
-	<!-- Database Connection Badge -->
-	<div class="px-4 py-3 bg-slate-950/60 border-b border-slate-800/80">
-		<div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Active Target</div>
+	<!-- Database Connection Status Badge -->
+	<div class="px-4 py-3 bg-secondary/50 border-b border-sidebar-border">
+		<div class="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+			<span>Active Target</span>
+			<span class="inline-flex items-center gap-1 text-[10px] font-medium text-success">
+				<span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+				{$connectionStatus?.config?.driver || 'Connected'}
+			</span>
+		</div>
 		<div class="flex items-center justify-between text-xs font-mono">
-			<span class="text-indigo-300 font-medium truncate max-w-[140px]">
+			<span class="text-primary font-medium truncate max-w-[140px]">
 				{$connectionStatus?.config?.name || 'Local Database'}
 			</span>
-			<span class="text-[10px] text-slate-400">
+			<span class="text-[10px] text-muted-foreground">
 				{$connectionStatus?.config?.host || 'localhost'}
 			</span>
 		</div>
 	</div>
 
-	<!-- Navigation Tabs -->
+	<!-- Navigation View Tabs -->
 	<div class="px-3 pt-3">
-		<div class="flex p-1 bg-slate-950 rounded-lg text-xs font-medium text-slate-400">
+		<div class="flex p-1 bg-secondary rounded-lg text-xs font-medium text-muted-foreground border border-border/50">
 			<button
+				type="button"
 				onclick={() => onSelectTab('table')}
-				class="flex-1 py-1.5 rounded-md transition-all text-center cursor-pointer {
-					activeTab === 'table' ? 'bg-indigo-600 text-white shadow' : 'hover:text-slate-200'
+				class="flex-1 py-1 rounded-md transition-all text-center cursor-pointer {
+					activeTab === 'table' ? 'bg-primary text-primary-foreground font-semibold shadow-xs' : 'hover:text-foreground'
 				}"
 			>
 				Table
 			</button>
 			<button
+				type="button"
 				onclick={() => onSelectTab('schema')}
-				class="flex-1 py-1.5 rounded-md transition-all text-center cursor-pointer {
-					activeTab === 'schema' ? 'bg-indigo-600 text-white shadow' : 'hover:text-slate-200'
+				class="flex-1 py-1 rounded-md transition-all text-center cursor-pointer {
+					activeTab === 'schema' ? 'bg-primary text-primary-foreground font-semibold shadow-xs' : 'hover:text-foreground'
 				}"
 			>
 				Schema
 			</button>
 			<button
+				type="button"
 				onclick={() => onSelectTab('sql')}
-				class="flex-1 py-1.5 rounded-md transition-all text-center cursor-pointer {
-					activeTab === 'sql' ? 'bg-indigo-600 text-white shadow' : 'hover:text-slate-200'
+				class="flex-1 py-1 rounded-md transition-all text-center cursor-pointer {
+					activeTab === 'sql' ? 'bg-primary text-primary-foreground font-semibold shadow-xs' : 'hover:text-foreground'
 				}"
 			>
 				SQL
@@ -103,49 +156,46 @@
 	<!-- Tables Search Filter -->
 	<div class="p-3">
 		<div class="relative">
-			<input
+			<Search class="size-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
+			<Input
 				type="text"
 				bind:value={searchQuery}
 				placeholder="Filter tables..."
-				class="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 text-slate-200 placeholder:text-slate-400"
+				class="h-8 pl-8 text-xs bg-background"
 			/>
-			<svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-			</svg>
 		</div>
 	</div>
 
 	<!-- Tables List -->
-	<div class="flex-1 overflow-auto custom-scrollbar px-2 space-y-0.5">
-		<div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex justify-between">
+	<div class="flex-1 overflow-auto px-2 space-y-0.5">
+		<div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex justify-between">
 			<span>Tables ({filteredTables.length})</span>
 		</div>
 
 		{#if loading}
-			<div class="p-4 text-center text-xs text-slate-400 animate-pulse">Loading tables...</div>
+			<div class="p-4 text-center text-xs text-muted-foreground animate-pulse">Loading tables...</div>
 		{:else if filteredTables.length === 0}
-			<div class="p-4 text-center text-xs text-slate-400">No tables found</div>
+			<div class="p-4 text-center text-xs text-muted-foreground">No tables found</div>
 		{:else}
 			{#each filteredTables as t}
 				<button
+					type="button"
 					onclick={() => {
 						onSelectTable(t.name);
 						if (activeTab === 'sql') onSelectTab('table');
 					}}
-					class="w-full px-2.5 py-2 rounded-lg text-left text-xs transition-colors flex items-center justify-between group cursor-pointer {
+					class="w-full px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors flex items-center justify-between group cursor-pointer {
 						selectedTable === t.name
-							? 'bg-indigo-600/20 text-indigo-300 font-medium border border-indigo-500/30'
-							: 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+							? 'bg-primary/10 text-primary font-semibold border border-primary/20'
+							: 'text-foreground hover:bg-secondary/80'
 					}"
 				>
 					<div class="flex items-center gap-2 truncate">
-						<svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-						</svg>
+						<Table class="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
 						<span class="truncate font-mono">{t.name}</span>
 					</div>
 					{#if t.type === 'VIEW'}
-						<span class="text-[9px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">VIEW</span>
+						<span class="text-[9px] px-1 py-0.2 rounded bg-primary/20 text-primary font-mono font-medium">VIEW</span>
 					{/if}
 				</button>
 			{/each}

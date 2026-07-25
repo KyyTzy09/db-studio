@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { batchInsertOrUpdate } from '../../../data/services';
+	import { Button } from '../shadcn/button';
+	import { Upload, FileText, X } from '@lucide/svelte';
 
 	let { tableName, isOpen = $bindable(false), onClose, onSuccess } = $props<{
 		tableName: string;
@@ -173,26 +175,28 @@
 		onkeydown={(e) => { if (e.key === 'Escape') handleClose(); }}
 	>
 		<div
-			class="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl cursor-default"
+			class="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-2xl cursor-default"
 			onclick={(e) => e.stopPropagation()}
 			role="document"
 			tabindex="-1"
 		>
-			<div class="flex items-center justify-between border-b border-slate-800 pb-4">
-				<h3 class="text-lg font-bold text-slate-100">
-					📥 Bulk Import Data to <span class="text-purple-400 font-mono">{tableName}</span>
+			<div class="flex items-center justify-between border-b border-border pb-4">
+				<h3 class="text-base font-bold text-foreground flex items-center gap-1.5">
+					<Upload class="size-4 text-primary" /> Bulk Import Data to <span class="text-primary font-mono">{tableName}</span>
 				</h3>
-				<button type="button" onclick={handleClose} class="text-slate-400 hover:text-slate-200 text-xl font-bold p-1 cursor-pointer">✕</button>
+				<Button type="button" variant="ghost" size="icon-xs" onclick={handleClose}>
+					<X class="size-4" />
+				</Button>
 			</div>
 
 			{#if errorMessage}
-				<div class="mt-4 rounded-lg bg-rose-950/70 border border-rose-800/80 p-3 text-xs text-rose-300">
+				<div class="mt-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
 					⚠️ {errorMessage}
 				</div>
 			{/if}
 
 			{#if statusMessage}
-				<div class="mt-4 rounded-lg bg-emerald-950/70 border border-emerald-800/80 p-3 text-xs text-emerald-300">
+				<div class="mt-4 rounded-lg bg-success/10 border border-success/20 p-3 text-xs text-success font-medium">
 					{statusMessage}
 				</div>
 			{/if}
@@ -204,72 +208,70 @@
 				ondrop={handleDrop}
 				class="mt-4 border-2 border-dashed rounded-xl p-6 text-center transition flex flex-col items-center justify-center cursor-pointer {
 					isDragging
-						? 'border-purple-500 bg-purple-500/10'
-						: 'border-slate-700 bg-slate-950/60 hover:border-slate-500 hover:bg-slate-950'
+						? 'border-primary bg-primary/10'
+						: 'border-border bg-background/60 hover:border-primary/50 hover:bg-background'
 				}"
 				role="region"
 				aria-label="Drag and Drop Upload Area"
 			>
 				<input type="file" accept=".csv,.json" onchange={handleFileSelect} class="hidden" id="fileInput" />
 				<label for="fileInput" class="cursor-pointer w-full flex flex-col items-center">
-					<div class="text-3xl mb-2">📁</div>
+					<FileText class="size-8 text-primary mb-2" />
 					{#if fileName}
-						<span class="text-sm font-semibold text-purple-300 font-mono">{fileName}</span>
-						<span class="text-xs text-slate-400 mt-1">({parsedRows.length} rows detected)</span>
+						<span class="text-xs font-semibold text-primary font-mono">{fileName}</span>
+						<span class="text-[11px] text-muted-foreground mt-1">({parsedRows.length} rows detected)</span>
 					{:else}
-						<span class="text-sm font-semibold text-slate-200">Drag & Drop your .csv or .json file here</span>
-						<span class="text-xs text-slate-400 mt-1">or click to browse files from your computer</span>
+						<span class="text-xs font-semibold text-foreground">Drag & Drop your .csv or .json file here</span>
+						<span class="text-[11px] text-muted-foreground mt-1">or click to browse files from your computer</span>
 					{/if}
 				</label>
 			</div>
 
 			<!-- Live Preview & Settings -->
 			{#if parsedRows.length > 0}
-				<div class="mt-4 space-y-4">
+				<div class="mt-4 space-y-4 text-xs">
 					<!-- Import Mode Toggle -->
-					<div class="flex items-center justify-between bg-slate-950 rounded-lg p-3 border border-slate-800">
-						<span class="text-xs font-semibold text-slate-300">Import Mode Strategy:</span>
+					<div class="flex items-center justify-between bg-secondary/50 rounded-lg p-3 border border-border">
+						<span class="font-semibold text-foreground">Import Mode Strategy:</span>
 						<div class="flex gap-2">
-							<button
+							<Button
 								type="button"
+								variant={importMode === 'insert' ? 'default' : 'outline'}
+								size="xs"
 								onclick={() => (importMode = 'insert')}
-								class="px-3 py-1.5 rounded-md text-xs font-semibold transition {
-									importMode === 'insert' ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-								}"
 							>
 								Insert Only
-							</button>
-							<button
+							</Button>
+							<Button
 								type="button"
+								variant={importMode === 'upsert' ? 'default' : 'outline'}
+								size="xs"
 								onclick={() => (importMode = 'upsert')}
-								class="px-3 py-1.5 rounded-md text-xs font-semibold transition {
-									importMode === 'upsert' ? 'bg-amber-600 text-white shadow' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-								}"
 							>
 								Upsert (Update if PK Exists)
-							</button>
+							</Button>
 						</div>
 					</div>
 
 					<!-- Sample Table Preview -->
 					<div>
-						<div class="text-xs font-semibold text-slate-400 mb-2">
+						<div class="text-[11px] font-semibold text-muted-foreground mb-2">
 							Sample Data Preview (First 5 of {parsedRows.length} rows):
 						</div>
-						<div class="max-h-36 overflow-auto rounded-lg border border-slate-800 bg-slate-950 text-xs">
+						<div class="max-h-36 overflow-auto rounded-lg border border-border bg-background text-xs">
 							<table class="w-full text-left font-mono">
-								<thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+								<thead class="bg-secondary text-muted-foreground border-b border-border">
 									<tr>
 										{#each Object.keys(previewRows[0] || {}) as key}
-											<th class="p-2 border-r border-slate-800">{key}</th>
+											<th class="p-2 border-r border-border">{key}</th>
 										{/each}
 									</tr>
 								</thead>
 								<tbody>
 									{#each previewRows as row}
-										<tr class="border-b border-slate-900/60 hover:bg-slate-900/40">
+										<tr class="border-b border-border/60 hover:bg-secondary/40">
 											{#each Object.keys(previewRows[0] || {}) as key}
-												<td class="p-2 border-r border-slate-800 text-slate-300">{row[key]}</td>
+												<td class="p-2 border-r border-border text-foreground">{row[key]}</td>
 											{/each}
 										</tr>
 									{/each}
@@ -280,22 +282,18 @@
 				</div>
 			{/if}
 
-			<div class="pt-6 flex justify-end gap-3 border-t border-slate-800 mt-6">
-				<button
-					type="button"
-					onclick={handleClose}
-					class="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer"
-				>
+			<div class="pt-6 flex justify-end gap-3 border-t border-border mt-6">
+				<Button type="button" variant="outline" size="sm" onclick={handleClose}>
 					Cancel
-				</button>
-				<button
+				</Button>
+				<Button
 					type="button"
+					size="sm"
 					onclick={handleExecuteImport}
 					disabled={parsedRows.length === 0 || isUploading}
-					class="rounded-lg bg-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-lg hover:bg-purple-500 disabled:opacity-50 transition cursor-pointer"
 				>
 					{isUploading ? 'Processing Import...' : `Import ${parsedRows.length} Rows`}
-				</button>
+				</Button>
 			</div>
 		</div>
 	</div>

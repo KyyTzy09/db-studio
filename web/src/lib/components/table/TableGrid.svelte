@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { fetchTableData, fetchTableSchema, deleteTableRow, type QueryResult, type TableSchema } from '../../../data/services';
+	import { fetchTableData, fetchTableSchema, deleteTableRow } from '../../../data/services';
 	import { exportToCSV, exportToJSON } from '../../utils/exportUtils';
 	import InsertRowModal from '../modals/InsertRowModal.svelte';
 	import EditRowModal from '../modals/EditRowModal.svelte';
 	import ImportModal from '../modals/ImportModal.svelte';
+	import type { QueryResult, TableSchema } from '$lib/api';
+	import { Button } from '../shadcn/button';
+	import { Input } from '../shadcn/input';
+	import { Search, Plus, Upload, Download, RefreshCw, Pencil, Trash2, Database, AlertTriangle } from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
 
@@ -57,17 +61,16 @@
 			return dataResult.columns;
 		}
 		if (schema && schema.columns && schema.columns.length > 0) {
-			return schema.columns.map((c) => c.name);
+			return schema.columns.map((c: any) => c.name);
 		}
 		return [];
 	});
 
 	let schemaColumns = $derived(schema?.columns || []);
-
 	let rowsList = $derived(dataResult?.rows || []);
 
 	let filteredRows = $derived(
-		rowsList.filter((row) =>
+		rowsList.filter((row: any) =>
 			Object.values(row || {}).some((val) =>
 				String(val ?? '').toLowerCase().includes(searchQuery.toLowerCase())
 			)
@@ -113,118 +116,119 @@
 	}
 </script>
 
-<div class="flex-1 flex flex-col h-full bg-slate-950 text-slate-200 overflow-hidden">
+<div class="flex-1 flex flex-col h-full bg-background text-foreground overflow-hidden">
 	<!-- Toolbar -->
-	<div class="px-6 py-3 border-b border-slate-800 bg-slate-900/50 flex flex-wrap items-center justify-between gap-4">
+	<div class="px-6 py-3 border-b border-border bg-card/40 flex flex-wrap items-center justify-between gap-4">
 		<div class="flex items-center gap-3">
 			<div class="relative w-56">
-				<input
+				<Search class="size-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
+				<Input
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search rows..."
-					class="w-full bg-slate-900 border border-slate-700/60 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 text-slate-200 placeholder:text-slate-500"
+					class="h-8 pl-8 text-xs bg-background"
 				/>
-				<svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-				</svg>
 			</div>
-			<span class="text-xs text-slate-400 font-medium">
+			<span class="text-xs text-muted-foreground font-medium">
 				{filteredRows.length} rows found
 			</span>
 		</div>
 
-		<!-- Actions (Insert, Import, Export, Refresh) -->
+		<!-- Action Buttons -->
 		<div class="flex items-center gap-2">
-			<button
+			<Button
+				variant="default"
+				size="sm"
 				onclick={() => (showInsertModal = true)}
-				class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-lg transition flex items-center gap-1 cursor-pointer"
 			>
-				➕ Add Row
-			</button>
+				<Plus class="size-3.5 mr-1" />
+				Add Row
+			</Button>
 
-			<button
+			<Button
+				variant="outline"
+				size="sm"
 				onclick={() => (showImportModal = true)}
-				class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-lg transition flex items-center gap-1 cursor-pointer"
 			>
-				📥 Import Data
-			</button>
+				<Upload class="size-3.5 mr-1" />
+				Import
+			</Button>
 
-			<!-- Export Dropdown / Buttons -->
-			<div class="flex items-center rounded-lg border border-slate-700 bg-slate-900 text-xs">
+			<!-- Export Buttons -->
+			<div class="flex items-center rounded-md border border-border bg-card text-xs">
 				<button
+					type="button"
 					onclick={handleExportCSV}
-					class="px-2.5 py-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition rounded-l-lg border-r border-slate-700 font-mono cursor-pointer"
+					class="px-2.5 py-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition rounded-l-md border-r border-border font-mono cursor-pointer flex items-center gap-1"
 				>
-					CSV ⬇
+					<Download class="size-3" /> CSV
 				</button>
 				<button
+					type="button"
 					onclick={handleExportJSON}
-					class="px-2.5 py-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition rounded-r-lg font-mono cursor-pointer"
+					class="px-2.5 py-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition rounded-r-md font-mono cursor-pointer flex items-center gap-1"
 				>
-					JSON ⬇
+					<Download class="size-3" /> JSON
 				</button>
 			</div>
 
-			<button
+			<Button
+				variant="ghost"
+				size="sm"
 				onclick={() => loadData(tableName)}
-				class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
 			>
-				<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-				</svg>
+				<RefreshCw class="size-3.5 mr-1" />
 				Refresh
-			</button>
+			</Button>
 		</div>
 	</div>
 
-	<!-- Main Table Data Grid Container -->
-	<div class="flex-1 overflow-auto custom-scrollbar p-6">
+	<!-- Main Data Grid Container -->
+	<div class="flex-1 overflow-auto p-6">
 		{#if loading}
-			<div class="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
-				<div class="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+			<div class="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2">
+				<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
 				<span class="text-xs">Loading table data...</span>
 			</div>
 		{:else if errorMsg}
-			<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+			<div class="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
 				❌ Error: {errorMsg}
 			</div>
 		{:else}
-			<div class="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/60">
+			<div class="border border-border rounded-xl overflow-hidden shadow-sm bg-card">
 				<table class="w-full text-left text-xs border-collapse">
 					<thead>
-						<tr class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
-							<th class="px-4 py-3 border-r border-slate-800/80 w-12 text-center">#</th>
+						<tr class="bg-secondary/60 text-muted-foreground font-semibold border-b border-border uppercase tracking-wider">
+							<th class="px-4 py-3 border-r border-border/60 w-12 text-center">#</th>
 							{#each columns() as col}
-								<th class="px-4 py-3 border-r border-slate-800/80 font-mono text-[11px] text-indigo-300">
+								<th class="px-4 py-3 border-r border-border/60 font-mono text-[11px] text-primary">
 									{col}
 								</th>
 							{/each}
 							<th class="px-4 py-3 w-20 text-center">Actions</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-slate-800/60">
+					<tbody class="divide-y divide-border/60">
 						{#if paginatedRows.length === 0}
 							<tr>
-								<td colspan={columns().length + 2} class="px-6 py-12 text-center text-slate-500">
+								<td colspan={columns().length + 2} class="px-6 py-12 text-center text-muted-foreground">
 									<div class="flex flex-col items-center justify-center gap-2">
-										<svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-										</svg>
-										<span class="font-medium text-slate-400">Table "{tableName}" has no rows (0 rows).</span>
-										<span class="text-[11px] text-slate-600">Structure is displayed above. Use "+ Add Row" or "Import Data" to populate rows.</span>
+										<Database class="size-8 text-muted-foreground/60" />
+										<span class="font-medium text-foreground">Table "{tableName}" has 0 rows.</span>
+										<span class="text-[11px] text-muted-foreground">Use "+ Add Row" or "Import" to populate records.</span>
 									</div>
 								</td>
 							</tr>
 						{:else}
 							{#each paginatedRows as row, i}
-								<tr class="hover:bg-slate-800/40 transition-colors group">
-									<td class="px-4 py-2.5 border-r border-slate-800/60 text-slate-500 text-center font-mono">
+								<tr class="hover:bg-secondary/40 transition-colors">
+									<td class="px-4 py-2.5 border-r border-border/60 text-muted-foreground text-center font-mono">
 										{(currentPage - 1) * pageSize + i + 1}
 									</td>
 									{#each columns() as col}
-										<td class="px-4 py-2.5 border-r border-slate-800/60 max-w-xs truncate font-mono text-slate-300">
+										<td class="px-4 py-2.5 border-r border-border/60 max-w-xs truncate font-mono text-foreground">
 											{#if row[col] === null}
-												<span class="text-slate-600 italic">null</span>
+												<span class="text-muted-foreground/60 italic">null</span>
 											{:else}
 												{String(row[col] ?? '')}
 											{/if}
@@ -232,18 +236,20 @@
 									{/each}
 									<td class="px-4 py-2.5 text-center flex justify-center gap-1">
 										<button
+											type="button"
 											onclick={() => openEditModal(row)}
-											class="p-1 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded transition-all cursor-pointer"
+											class="p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer"
 											title="Edit row"
 										>
-											✏️
+											<Pencil class="size-3.5" />
 										</button>
 										<button
+											type="button"
 											onclick={() => openDeleteModal(row)}
-											class="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+											class="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-all cursor-pointer"
 											title="Delete row"
 										>
-											🗑️
+											<Trash2 class="size-3.5" />
 										</button>
 									</td>
 								</tr>
@@ -257,25 +263,27 @@
 
 	<!-- Pagination Controls -->
 	{#if columns().length > 0 && filteredRows.length > 0}
-		<div class="px-6 py-3 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+		<div class="px-6 py-3 border-t border-border bg-card/40 flex items-center justify-between text-xs text-muted-foreground">
 			<div>
-				Showing Page <span class="font-bold text-white">{currentPage}</span> of <span class="font-bold text-white">{totalPages}</span>
+				Showing Page <span class="font-bold text-foreground">{currentPage}</span> of <span class="font-bold text-foreground">{totalPages}</span>
 			</div>
 			<div class="flex items-center gap-2">
-				<button
+				<Button
+					variant="outline"
+					size="xs"
 					disabled={currentPage === 1}
 					onclick={() => currentPage--}
-					class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 transition-colors"
 				>
 					Previous
-				</button>
-				<button
+				</Button>
+				<Button
+					variant="outline"
+					size="xs"
 					disabled={currentPage >= totalPages}
 					onclick={() => currentPage++}
-					class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 transition-colors"
 				>
 					Next
-				</button>
+				</Button>
 			</div>
 		</div>
 	{/if}
@@ -308,28 +316,21 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteModal}
-	<div class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-50 p-4 cursor-pointer" onclick={(e) => { if (e.target === e.currentTarget) showDeleteModal = false; }} role="dialog" tabindex="-1">
-		<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl cursor-default" onclick={(e) => e.stopPropagation()} role="document" tabindex="-1">
-			<h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
-				⚠️ Confirm Delete Row
+	<div class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 cursor-pointer" onclick={(e) => { if (e.target === e.currentTarget) showDeleteModal = false; }} role="dialog" tabindex="-1">
+		<div class="bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl cursor-default" onclick={(e) => e.stopPropagation()} role="document" tabindex="-1">
+			<h3 class="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+				<AlertTriangle class="size-5 text-warning" /> Confirm Delete Row
 			</h3>
-			<p class="text-xs text-slate-400 mb-4 leading-relaxed">
-				Are you sure you want to delete this row from table <span class="font-bold text-white">"{tableName}"</span>?
+			<p class="text-xs text-muted-foreground mb-4 leading-relaxed">
+				Are you sure you want to delete this row from table <span class="font-bold text-foreground">"{tableName}"</span>?
 			</p>
 			<div class="flex justify-end gap-3">
-				<button
-					onclick={() => (showDeleteModal = false)}
-					class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition-colors cursor-pointer"
-				>
+				<Button variant="outline" size="sm" onclick={() => (showDeleteModal = false)}>
 					Cancel
-				</button>
-				<button
-					onclick={confirmDelete}
-					disabled={deleting}
-					class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white transition-colors cursor-pointer"
-				>
+				</Button>
+				<Button variant="destructive" size="sm" onclick={confirmDelete} disabled={deleting}>
 					{deleting ? 'Deleting...' : 'Delete Row'}
-				</button>
+				</Button>
 			</div>
 		</div>
 	</div>

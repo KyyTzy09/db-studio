@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { fetchTableSchema, type TableSchema } from '../../../data/services';
+	import { Button } from '../shadcn/button';
+	import { RefreshCw, FileText, Key, Check, X } from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
 
@@ -26,65 +28,72 @@
 	}
 </script>
 
-<div class="flex-1 flex flex-col h-full bg-slate-950 text-slate-200 overflow-hidden">
-	<div class="px-6 py-3 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-		<h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-			Schema for <span class="text-indigo-400 font-mono">{tableName}</span>
+<div class="flex-1 flex flex-col h-full bg-background text-foreground overflow-hidden">
+	<div class="px-6 py-3 border-b border-border bg-card/40 flex items-center justify-between">
+		<h2 class="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+			<FileText class="size-4 text-primary" /> Schema for <span class="text-primary font-mono">{tableName}</span>
 		</h2>
-		<button
+		<Button
+			variant="outline"
+			size="xs"
 			onclick={() => loadSchema(tableName)}
-			class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition"
 		>
-			Refresh
-		</button>
+			<RefreshCw class="size-3 mr-1" /> Refresh
+		</Button>
 	</div>
 
-	<div class="flex-1 overflow-auto custom-scrollbar p-6">
+	<div class="flex-1 overflow-auto p-6">
 		{#if loading}
-			<div class="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
-				<div class="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+			<div class="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2">
+				<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
 				<span class="text-xs">Loading schema metadata...</span>
 			</div>
 		{:else if errorMsg}
-			<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+			<div class="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-mono">
 				❌ {errorMsg}
 			</div>
 		{:else if schema}
-			<div class="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/60">
+			<div class="border border-border rounded-xl overflow-hidden shadow-xs bg-card">
 				<table class="w-full text-left text-xs border-collapse font-mono">
 					<thead>
-						<tr class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
-							<th class="px-4 py-3 border-r border-slate-800/80">Column Name</th>
-							<th class="px-4 py-3 border-r border-slate-800/80">Data Type</th>
-							<th class="px-4 py-3 border-r border-slate-800/80 text-center">Nullable</th>
-							<th class="px-4 py-3 border-r border-slate-800/80 text-center">Primary Key</th>
+						<tr class="bg-secondary/60 text-muted-foreground font-semibold border-b border-border uppercase tracking-wider">
+							<th class="px-4 py-3 border-r border-border/60">Column Name</th>
+							<th class="px-4 py-3 border-r border-border/60">Data Type</th>
+							<th class="px-4 py-3 border-r border-border/60 text-center">Nullable</th>
+							<th class="px-4 py-3 border-r border-border/60 text-center">Primary Key</th>
 							<th class="px-4 py-3">Default Value</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-slate-800/60">
+					<tbody class="divide-y divide-border/60">
 						{#each schema.columns as col}
-							<tr class="hover:bg-slate-800/40 transition-colors">
-								<td class="px-4 py-2.5 border-r border-slate-800/60 font-semibold text-slate-200">
+							<tr class="hover:bg-secondary/40 transition-colors">
+								<td class="px-4 py-2.5 border-r border-border/60 font-semibold text-foreground">
 									{col.name}
 								</td>
-								<td class="px-4 py-2.5 border-r border-slate-800/60 text-purple-400">
+								<td class="px-4 py-2.5 border-r border-border/60 text-primary font-medium">
 									{col.data_type}
 								</td>
-								<td class="px-4 py-2.5 border-r border-slate-800/60 text-center">
+								<td class="px-4 py-2.5 border-r border-border/60 text-center">
 									{#if col.is_nullable}
-										<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px]">YES</span>
+										<span class="px-2 py-0.5 rounded bg-success/10 text-success text-[10px] font-semibold inline-flex items-center gap-1">
+											<Check class="size-3" /> YES
+										</span>
 									{:else}
-										<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-[10px]">NO</span>
+										<span class="px-2 py-0.5 rounded bg-destructive/10 text-destructive text-[10px] font-semibold inline-flex items-center gap-1">
+											<X class="size-3" /> NO
+										</span>
 									{/if}
 								</td>
-								<td class="px-4 py-2.5 border-r border-slate-800/60 text-center">
+								<td class="px-4 py-2.5 border-r border-border/60 text-center">
 									{#if col.is_primary_key}
-										<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">PRIMARY KEY</span>
+										<span class="px-2 py-0.5 rounded bg-warning/20 text-warning text-[10px] font-bold inline-flex items-center gap-1">
+											<Key class="size-3" /> PK
+										</span>
 									{:else}
-										<span class="text-slate-600">-</span>
+										<span class="text-muted-foreground/60">-</span>
 									{/if}
 								</td>
-								<td class="px-4 py-2.5 text-slate-400">
+								<td class="px-4 py-2.5 text-muted-foreground">
 									{col.default_value || '-'}
 								</td>
 							</tr>

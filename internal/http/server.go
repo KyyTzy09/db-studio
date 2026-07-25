@@ -12,6 +12,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"db-studio-go/internal/db"
+	"db-studio-go/internal/http/handlers"
+	"db-studio-go/internal/http/routes"
+	"db-studio-go/internal/http/services"
 )
 
 type Server struct {
@@ -62,19 +65,18 @@ func (s *Server) setupMiddleware() {
 }
 
 func (s *Server) setupRoutes() {
-	h := NewHandler(s.driver)
+	// Initialize services
+	connService := services.NewConnectionService(s.driver)
+	tableService := services.NewTableService(s.driver)
+	queryService := services.NewQueryService(s.driver)
 
-	s.router.Route("/api", func(r chi.Router) {
-		r.Get("/connection/status", h.HandleGetConnectionStatus)
-		r.Get("/tables", h.HandleGetTables)
-		r.Get("/tables/{name}/schema", h.HandleGetSchema)
-		r.Get("/tables/{name}/data", h.HandleGetData)
-		r.Post("/tables/{name}", h.HandleInsertRow)
-		r.Post("/tables/{name}/batch", h.HandleBatchInsertOrUpdate)
-		r.Patch("/tables/{name}", h.HandleUpdateRow)
-		r.Delete("/tables/{name}", h.HandleDeleteRow)
-		r.Post("/query", h.HandleExecuteQuery)
-	})
+	// Initialize handlers
+	connHandler := handlers.NewConnectionHandler(connService)
+	tableHandler := handlers.NewTableHandler(tableService)
+	queryHandler := handlers.NewQueryHandler(queryService)
+
+	// Register API routes
+	routes.RegisterAPIRoutes(s.router, connHandler, tableHandler, queryHandler)
 
 	// Embedded Static Assets Handler for SvelteKit SPA
 	subFS, err := fs.Sub(s.webFS, "web/build")
