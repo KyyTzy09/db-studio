@@ -52,6 +52,21 @@ type CreateTableRequest struct {
 	Columns   []ColumnSpec `json:"columns"`
 }
 
+// ForeignKeyRelation holds a foreign key link between two tables
+type ForeignKeyRelation struct {
+	ID           string `json:"id"`
+	SourceTable  string `json:"source_table"`
+	SourceColumn string `json:"source_column"`
+	TargetTable  string `json:"target_table"`
+	TargetColumn string `json:"target_column"`
+}
+
+// SchemaGraph holds complete database nodes and FK relationships for ER Diagram
+type SchemaGraph struct {
+	Nodes []TableSchema        `json:"nodes"`
+	Edges []ForeignKeyRelation `json:"edges"`
+}
+
 // Database defines standard operations for supported database drivers
 type Database interface {
 	Connect(ctx context.Context) error
@@ -59,6 +74,7 @@ type Database interface {
 	Ping(ctx context.Context) error
 	GetTables(ctx context.Context) ([]TableInfo, error)
 	GetSchema(ctx context.Context, tableName string) (*TableSchema, error)
+	GetSchemaGraph(ctx context.Context) (*SchemaGraph, error)
 	ExecuteQuery(ctx context.Context, query string, force bool) (*QueryResult, error)
 	InsertRow(ctx context.Context, table string, data map[string]interface{}) error
 	UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error

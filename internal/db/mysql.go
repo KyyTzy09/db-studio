@@ -133,6 +133,57 @@ func (m *MySQLDriver) GetSchema(ctx context.Context, tableName string) (*TableSc
 	return &TableSchema{TableName: tableName, Columns: columns}, nil
 }
 
+func (m *MySQLDriver) GetSchemaGraph(ctx context.Context) (*SchemaGraph, error) {
+	tables, err := m.GetTables(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var nodes []TableSchema
+	for _, t := range tables {
+		if t.Type != "BASE TABLE" {
+			continue
+		}
+		schema, err := m.GetSchema(ctx, t.Name)
+		if err != nil {
+			continue
+		}
+		nodes = append(nodes, *schema)
+	}
+
+	query := `
+		SELECT 
+			TABLE_NAME AS source_table,
+			COLUMN_NAME AS source_column,
+			REFERENCED_TABLE_NAME AS target_table,
+			REFERENCED_COLUMN_NAME AS target_column
+		FROM information_schema.KEY_COLUMN_USAGE
+		WHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL;
+	`
+
+	rows, err := m.db.QueryContext(ctx, query)
+	var edges []ForeignKeyRelation
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var rel ForeignKeyRelation
+			if err := rows.Scan(&rel.SourceTable, &rel.SourceColumn, &rel.TargetTable, &rel.TargetColumn); err == nil {
+				rel.ID = fmt.Sprintf("%s_%s-%s_%s", rel.SourceTable, rel.SourceColumn, rel.TargetTable, rel.TargetColumn)
+				edges = append(edges, rel)
+			}
+		}
+	}
+
+	if nodes == nil {
+		nodes = []TableSchema{}
+	}
+	if edges == nil {
+		edges = []ForeignKeyRelation{}
+	}
+
+	return &SchemaGraph{Nodes: nodes, Edges: edges}, nil
+}
+
 func (m *MySQLDriver) ExecuteQuery(ctx context.Context, queryStr string, force bool) (*QueryResult, error) {
 	if err := m.Connect(ctx); err != nil {
 		return nil, err

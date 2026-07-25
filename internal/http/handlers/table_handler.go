@@ -39,6 +39,15 @@ func (h *TableHandler) HandleGetSchema(w http.ResponseWriter, r *http.Request) {
 	h.RespondJSON(w, http.StatusOK, schema)
 }
 
+func (h *TableHandler) HandleGetSchemaGraph(w http.ResponseWriter, r *http.Request) {
+	graph, err := h.service.GetSchemaGraph(r.Context())
+	if err != nil {
+		h.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.RespondJSON(w, http.StatusOK, graph)
+}
+
 func (h *TableHandler) HandleGetData(w http.ResponseWriter, r *http.Request) {
 	tableName := chi.URLParam(r, "name")
 	result, err := h.service.GetData(r.Context(), tableName)

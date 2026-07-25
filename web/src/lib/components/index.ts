@@ -6,3 +6,4 @@ export { default as SQLEditor } from './sql/SQLEditor.svelte';
 export { default as InsertRowModal } from './modals/InsertRowModal.svelte';
 export { default as EditRowModal } from './modals/EditRowModal.svelte';
 export { default as ImportModal } from './modals/ImportModal.svelte';
+export { default as ERDiagramView } from './diagram/ERDiagramView.svelte';

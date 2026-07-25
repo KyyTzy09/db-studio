@@ -1,4 +1,4 @@
-import type { ConnectionStatus, TableInfo, TableSchema, QueryResult } from '../models';
+import type { ConnectionStatus, TableInfo, TableSchema, QueryResult, SchemaGraph } from '../models';
 
 const API_BASE = '/api';
 
@@ -10,6 +10,12 @@ export async function fetchConnectionStatus(): Promise<ConnectionStatus> {
 export async function fetchTables(): Promise<{ tables: TableInfo[] }> {
 	const res = await fetch(`${API_BASE}/tables`);
 	if (!res.ok) throw new Error('Failed to fetch tables');
+	return res.json();
+}
+
+export async function fetchSchemaGraph(): Promise<SchemaGraph> {
+	const res = await fetch(`${API_BASE}/schema/graph`);
+	if (!res.ok) throw new Error('Failed to fetch schema graph');
 	return res.json();
 }
 

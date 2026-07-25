@@ -143,7 +143,7 @@
 
 ## Phase 6: Post-MVP Roadmap 🔵
 - [ ] 🔵 Support Redis, MongoDB, MariaDB
-- [ ] 🔵 Visual ER Diagram Viewer
+- [/] 🔵 Visual ER Diagram Viewer (Technical Plan Created at `docs/plan/2026-07-26-er-diagram-viewer-plan.md`)
 - [x] 🔵 Schema Alteration UI (Visual Table Creator & Column Structure Editor)
 - [x] 🔵 Data Export / Import (CSV, JSON)
 - [ ] 🔵 AI Query Assistant (Natural Language to SQL)

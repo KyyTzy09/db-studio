@@ -23,3 +23,16 @@ export interface QueryResult {
 	affected_rows: number;
 	execution_ms: number;
 }
+
+export interface ForeignKeyRelation {
+	id: string;
+	source_table: string;
+	source_column: string;
+	target_table: string;
+	target_column: string;
+}
+
+export interface SchemaGraph {
+	nodes: TableSchema[];
+	edges: ForeignKeyRelation[];
+}

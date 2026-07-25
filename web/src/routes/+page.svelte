@@ -13,11 +13,12 @@
 		TableGrid,
 		SchemaExplorer,
 		SQLEditor,
-		ConnectWizard
+		ConnectWizard,
+		ERDiagramView
 	} from '$lib/components';
 
 	import { Button } from '$lib/components/shadcn/button';
-	import { Table, Database, Terminal, FileText, AlertOctagon } from '@lucide/svelte';
+	import { Table, Database, Terminal, FileText, AlertOctagon, Network } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -113,6 +114,13 @@
 						>
 							SQL Workspace
 						</button>
+						<button
+							type="button"
+							onclick={() => activeTab.set('diagram')}
+							class="px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 {$activeTab === 'diagram' ? 'bg-primary text-primary-foreground font-semibold shadow-xs' : 'text-muted-foreground hover:text-foreground'}"
+						>
+							<Network class="size-3.5" /> ER Diagram
+						</button>
 					</div>
 				</div>
 
@@ -143,6 +151,13 @@
 					{/if}
 				{:else if $activeTab === 'sql'}
 					<SQLEditor />
+				{:else if $activeTab === 'diagram'}
+					<ERDiagramView
+						onSelectTable={(name) => {
+							selectedTable.set(name);
+							activeTab.set('data');
+						}}
+					/>
 				{/if}
 			</div>
 		</main>

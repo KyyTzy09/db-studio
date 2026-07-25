@@ -4,3 +4,4 @@ export * from './useImportData.svelte.js';
 export * from './useTableData.svelte.js';
 export * from './useSQLEditor.svelte.js';
 export * from './useSchemaEditor.svelte.js';
+export * from './useERDiagram.svelte.js';

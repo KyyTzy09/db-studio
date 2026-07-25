@@ -10,6 +10,7 @@ func RegisterAPIRoutes(r chi.Router, connHandler *handlers.ConnectionHandler, ta
 	r.Route("/api", func(api chi.Router) {
 		api.Get("/connection/status", connHandler.HandleGetConnectionStatus)
 		api.Get("/tables", tableHandler.HandleGetTables)
+		api.Get("/schema/graph", tableHandler.HandleGetSchemaGraph)
 		api.Post("/tables", tableHandler.HandleCreateTable)
 		api.Get("/tables/{name}/schema", tableHandler.HandleGetSchema)
 		api.Get("/tables/{name}/data", tableHandler.HandleGetData)

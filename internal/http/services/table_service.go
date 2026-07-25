@@ -30,6 +30,10 @@ func (s *TableService) GetSchema(ctx context.Context, tableName string) (*db.Tab
 	return s.driver.GetSchema(ctx, tableName)
 }
 
+func (s *TableService) GetSchemaGraph(ctx context.Context) (*db.SchemaGraph, error) {
+	return s.driver.GetSchemaGraph(ctx)
+}
+
 func (s *TableService) GetData(ctx context.Context, tableName string) (*db.QueryResult, error) {
 	queryStr := "SELECT * FROM " + tableName + " LIMIT 100;"
 	return s.driver.ExecuteQuery(ctx, queryStr, true)

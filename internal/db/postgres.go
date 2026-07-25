@@ -148,6 +148,63 @@ func (p *PostgresDriver) GetSchema(ctx context.Context, tableName string) (*Tabl
 	return &TableSchema{TableName: tableName, Columns: columns}, nil
 }
 
+func (p *PostgresDriver) GetSchemaGraph(ctx context.Context) (*SchemaGraph, error) {
+	tables, err := p.GetTables(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var nodes []TableSchema
+	for _, t := range tables {
+		if t.Type != "BASE TABLE" {
+			continue
+		}
+		schema, err := p.GetSchema(ctx, t.Name)
+		if err != nil {
+			continue
+		}
+		nodes = append(nodes, *schema)
+	}
+
+	query := `
+		SELECT 
+			tc.table_name AS source_table,
+			kcu.column_name AS source_column,
+			ccu.table_name AS target_table,
+			ccu.column_name AS target_column
+		FROM information_schema.table_constraints AS tc
+		JOIN information_schema.key_column_usage AS kcu
+		  ON tc.constraint_name = kcu.constraint_name
+		  AND tc.table_schema = kcu.table_schema
+		JOIN information_schema.constraint_column_usage AS ccu
+		  ON ccu.constraint_name = tc.constraint_name
+		  AND ccu.table_schema = tc.table_schema
+		WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
+	`
+
+	rows, err := p.db.QueryContext(ctx, query)
+	var edges []ForeignKeyRelation
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var rel ForeignKeyRelation
+			if err := rows.Scan(&rel.SourceTable, &rel.SourceColumn, &rel.TargetTable, &rel.TargetColumn); err == nil {
+				rel.ID = fmt.Sprintf("%s_%s-%s_%s", rel.SourceTable, rel.SourceColumn, rel.TargetTable, rel.TargetColumn)
+				edges = append(edges, rel)
+			}
+		}
+	}
+
+	if nodes == nil {
+		nodes = []TableSchema{}
+	}
+	if edges == nil {
+		edges = []ForeignKeyRelation{}
+	}
+
+	return &SchemaGraph{Nodes: nodes, Edges: edges}, nil
+}
+
 func (p *PostgresDriver) ExecuteQuery(ctx context.Context, queryStr string, force bool) (*QueryResult, error) {
 	if err := p.Connect(ctx); err != nil {
 		return nil, err

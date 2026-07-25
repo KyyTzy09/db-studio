@@ -128,6 +128,56 @@ func (s *SQLiteDriver) GetSchema(ctx context.Context, tableName string) (*TableS
 	return &TableSchema{TableName: tableName, Columns: columns}, nil
 }
 
+func (s *SQLiteDriver) GetSchemaGraph(ctx context.Context) (*SchemaGraph, error) {
+	tables, err := s.GetTables(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var nodes []TableSchema
+	var edges []ForeignKeyRelation
+
+	for _, t := range tables {
+		if t.Type != "BASE TABLE" && t.Type != "table" {
+			continue
+		}
+		schema, err := s.GetSchema(ctx, t.Name)
+		if err != nil {
+			continue
+		}
+		nodes = append(nodes, *schema)
+
+		fkQuery := fmt.Sprintf("PRAGMA foreign_key_list(%s);", t.Name)
+		fkRows, err := s.db.QueryContext(ctx, fkQuery)
+		if err == nil {
+			for fkRows.Next() {
+				var id, seq int
+				var targetTable, sourceCol, targetCol, onUpdate, onDelete, match string
+				if err := fkRows.Scan(&id, &seq, &targetTable, &sourceCol, &targetCol, &onUpdate, &onDelete, &match); err == nil {
+					rel := ForeignKeyRelation{
+						ID:           fmt.Sprintf("%s_%s-%s_%s", t.Name, sourceCol, targetTable, targetCol),
+						SourceTable:  t.Name,
+						SourceColumn: sourceCol,
+						TargetTable:  targetTable,
+						TargetColumn: targetCol,
+					}
+					edges = append(edges, rel)
+				}
+			}
+			fkRows.Close()
+		}
+	}
+
+	if nodes == nil {
+		nodes = []TableSchema{}
+	}
+	if edges == nil {
+		edges = []ForeignKeyRelation{}
+	}
+
+	return &SchemaGraph{Nodes: nodes, Edges: edges}, nil
+}
+
 func (s *SQLiteDriver) ExecuteQuery(ctx context.Context, queryStr string, force bool) (*QueryResult, error) {
 	if err := s.Connect(ctx); err != nil {
 		return nil, err

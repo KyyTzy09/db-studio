@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { ConnectionStatus, TableInfo } from '$lib/api';
 
-export type ActiveTab = 'data' | 'schema' | 'sql';
+export type ActiveTab = 'data' | 'schema' | 'sql' | 'diagram';
 
 export const connectionStatus = writable<ConnectionStatus | null>(null);
 export const tablesList = writable<TableInfo[]>([]);
