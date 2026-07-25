@@ -82,7 +82,7 @@
 			</div>
 			<div>
 				<h1 class="font-bold text-foreground text-sm tracking-wide">DBStudio</h1>
-				<p class="text-[10px] text-muted-foreground font-mono">v0.1.0-sleek</p>
+				<p class="text-[10px] text-muted-foreground font-mono">v0.1.0</p>
 			</div>
 		</div>
 

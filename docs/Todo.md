@@ -27,11 +27,11 @@
 - [x] 🔴 Inisialisasi SvelteKit project di subfolder `web/` (`bun create svelte@latest web`)
 - [x] 🔴 Konfigurasi `@sveltejs/adapter-static` untuk SPA (Single Page Application) build target di `web/vite.config.ts`
 - [x] 🔴 Install dependencies UI: `@tailwindcss/vite` / `tailwindcss`, `@tanstack/svelte-table`, `@codemirror/state`, `@codemirror/view`, `@codemirror/lang-sql`
-- [ ] 🔴 Setup konversi komponen visual (Dumb Presentational Components) dan komponen pengambil data (Smart Components / Stores)
+- [x] 🔴 Setup konversi komponen visual (Dumb Presentational Components) dan komponen pengambil data (Smart Components / Hooks)
 
 ### 0.3 Build & Embed Integration
 - [x] 🔴 Setup `go:embed` pada `main.go` dan handler Chi untuk membaca folder build statis dari SvelteKit (`web/build/`)
-- [ ] 🔴 Buat Makefile / build script otomatisasi: `npm --prefix web run build` ➔ `go build -o bin/dbstudio main.go`
+- [x] 🔴 Buat Makefile / build script otomatisasi: `npm --prefix web run build` ➔ `go build -o bin/dbstudio main.go`
 
 ---
 
@@ -143,6 +143,6 @@
 ## Phase 6: Post-MVP Roadmap 🔵
 - [ ] 🔵 Support Redis, MongoDB, MariaDB
 - [ ] 🔵 Visual ER Diagram Viewer
-- [ ] 🔵 Data Export / Import (CSV, JSON)
+- [x] 🔵 Data Export / Import (CSV, JSON)
 - [ ] 🔵 AI Query Assistant (Natural Language to SQL)
-- [ ] 🔵 Dark Mode / Light Mode Toggle
+- [x] 🔵 Dark Mode / Light Mode Toggle

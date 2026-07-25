@@ -1,6 +1,14 @@
-test
-bin/*.exe~
-bin/*.exe
+# Dependencies & Build artifacts
+node_modules
 web/node_modules
 web/build
 web/.svelte-kit
+
+# Compiled Binaries (Keep repository lightweight, exclude heavy executables)
+bin/*
+!bin/cli.js
+
+# Temporary files
+*.exe~
+*.log
+test

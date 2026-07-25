@@ -1,0 +1,31 @@
+{
+  "name": "dbstudio",
+  "version": "0.1.0",
+  "description": "Zero-configuration Database Web Studio CLI for Postgres, MySQL, and SQLite",
+  "main": "bin/cli.js",
+  "bin": {
+    "dbstudio": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1",
+    "build:sh": "bash ./scripts/build.sh",
+    "start": "node ./bin/cli.js"
+  },
+  "keywords": [
+    "dbstudio",
+    "database",
+    "gui",
+    "studio",
+    "postgres",
+    "mysql",
+    "sqlite",
+    "cli"
+  ],
+  "author": "KyyTzy09",
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "README.md",
+    "DESIGN.md"
+  ]
+}

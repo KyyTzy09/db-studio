@@ -109,7 +109,7 @@
 				</div>
 
 				<div class="text-xs text-muted-foreground font-mono">
-					DBStudio v0.1.0-sleek
+					DBStudio v0.1.0
 				</div>
 			</header>
 
