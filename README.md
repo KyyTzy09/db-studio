@@ -1,83 +1,110 @@
 # DBStudio ⚡
 
+[![npm version](https://img.shields.io/npm/v/dbstudio.svg?color=22c55e)](https://www.npmjs.com/package/dbstudio)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go)](https://go.dev)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-5-FF3E00?logo=svelte)](https://kit.svelte.dev)
+
 > **Zero-configuration Database Web Studio CLI for PostgreSQL, MySQL, and SQLite.**
 
-DBStudio adalah alat CLI lokal berbasis **Go + SvelteKit** yang secara otomatis mendeteksi konfigurasi database dalam proyek kamu (`.env`, `docker-compose.yml`, `connections.json`), kemudian meluncurkan Web Studio lokal yang ringan, indah (Type UI Sleek), dan responsif.
+**DBStudio** is a lightweight, ultra-fast local database studio powered by a **Go** backend and a **SvelteKit** single-page web interface. It automatically scans your local project workspace for existing database configurations (`.env`, `docker-compose.yml`, `connections.json`) and instantly launches a sleek local web interface for browsing, querying, and altering your database.
 
 ---
 
-## 🚀 Fitur Utama
+## ✨ Features
 
-- 🔍 **Auto-detection Scanner**: Otomatis mendeteksi kredensial database dari `.env` atau `docker-compose.yml` di folder kerja kamu.
-- 🧙 **CLI Interactive Wizard**: Fallback wizard interaktif di terminal jika tidak ada file konfigurasi yang ditemukan.
-- 🔒 **Global Config Manager**: Menyimpan kredensial secara aman di lokasi OS pengguna (`~/.config/dbstudio/connections.json`) terikat ke path proyek.
-- ⚡ **Lazy Connection & Fast Startup**: Startup cepat (< 3 detik). Koneksi fisik DB baru dipicu saat Web UI dibuka.
-- 📊 **Dynamic Data Grid**: Browsing data dengan pagination, client-side filtering, sorting, & CSV/JSON export.
-- ✏️ **Full CRUD Operations**: Modal tambah, edit, dan hapus baris dengan Shadcn Dialog.
-- 📥 **Bulk Import CSV & JSON**: Unggah berkas CSV/JSON dengan zona *drag and drop* serta mode *Insert Only* atau *Upsert*.
-- 🛡️ **Raw SQL Editor & Safety Guard (HTTP 428)**: CodeMirror 6 SQL editor yang mendeteksi kata kunci destruktif (`DROP`, `DELETE`, `UPDATE`, `TRUNCATE`) dan menampilkan pop-up peringatan keselamatan sebelum dieksekusi.
-- 🎨 **Type UI Sleek Design**: Tampilan antarmuka modern dengan dukungan konsisten untuk Soft Charcoal Dark Mode (`#0F1115`) dan Soft Light Mode (`#FCFCFC`).
+- 🔍 **Zero-Config Auto-Scanner**: Detects database connection strings from `.env` or `docker-compose.yml` automatically in your current working directory.
+- 🧙 **Charm TUI Terminal Engine**: Built with [Charm](https://charm.sh) libraries (`lipgloss`, `huh`, `log`). Enjoy a clean, beautiful terminal banner, calm output, and intuitive interactive forms.
+- 🕸️ **Interactive 2D ER Diagram Viewer**: Visualize table relationships with drag-and-drop table nodes, smooth SVG Bezier curve connectors, pan/zoom canvas controls, and automatic layout persistence.
+- 🛠️ **Visual Schema Alteration & Table Creator**: Design new tables and add columns visually with Primary Key badges, Auto-Increment toggles, and relational Foreign Key dropdown pickers.
+- ⚡ **Lazy Connection & Instant Startup**: Launches in under 3 seconds! Physical database connections are lazily established only when the Web UI triggers HTTP requests.
+- 📊 **Dynamic Data Grid**: Browse records with fast client-side sorting, column filtering, pagination, and instant CSV/JSON exports.
+- ✏️ **Full Data CRUD**: Add, edit, and delete database rows effortlessly with explicit PK/FK indicators powered by Shadcn UI.
+- 📥 **Drag-and-Drop Bulk Data Import**: Upload CSV or JSON files via drag-and-drop zones with selectable **Insert Only** or **Upsert** modes.
+- 🛡️ **Raw SQL Editor & Safety Guard (HTTP 428)**: CodeMirror 6 SQL editor with syntax highlighting, autocomplete, and a built-in safety guard interceptor that blocks destructive queries (`DROP`, `DELETE`, `TRUNCATE`, `ALTER`) until explicitly confirmed.
+- 🎨 **Type UI Sleek Dark & Light Mode**: Modern, ultra-premium UI styled in Soft Charcoal Dark Mode (`#0F1115`) and Soft Light Mode (`#FCFCFC`).
 
 ---
 
-## 💻 Cara Penggunaan
+## 💻 Quickstart
 
-### 1. Menjalankan via `npx` (Tanpa Instalasi)
+### 1. Instant Run via `npx` (No Installation Required)
+Navigate to any project directory containing a `.env` or `docker-compose.yml` file and run:
 ```bash
 npx dbstudio
 ```
 
-### 2. Instalasi Global via `npm`
+### 2. Global Installation via `npm`
 ```bash
 npm install -g dbstudio
 dbstudio
 ```
 
-### 3. Perintah CLI yang Tersedia
+---
+
+## 🕹️ CLI Commands
 
 ```bash
-# Menjalankan auto-detection & membuka Web Studio
+# Auto-detect database credentials in cwd & launch Web Studio
 dbstudio
 
-# Menjalankan CLI Interactive Wizard untuk menambah/mengedit koneksi
+# Launch the interactive Charm CLI wizard to manually add or select database connections
 dbstudio connect
 
-# Mengecek diagnosa health-check koneksi database
+# Run diagnostic health-checks on configured databases
 dbstudio doctor
 
-# Menampilkan informasi versi rilis DBStudio
+# Display DBStudio build version information
 dbstudio version
+
+# Enable debug logging output
+dbstudio --verbose
 ```
 
 ---
 
-## 🛠️ Panduan Build Otomatis (Cross-Platform)
+## 🤝 Open Source & Contributing
 
-Untuk mengkompilasi SvelteKit frontend dan menghasilkan single binary executable untuk seluruh OS:
+DBStudio is **100% Open Source**! Whether you are a database enthusiast, Go developer, or frontend hacker who loves clean tools, **contributions are warmly welcomed**! 💙
 
-### Windows (PowerShell):
-```powershell
-npm run build
-# Atau langsung jalankan script PowerShell:
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
-```
+### How You Can Help:
+- 🐛 **Report Issues & Bugs**: Found a bug or edge case? Open an issue on GitHub.
+- 💡 **Suggest Features**: Have an idea for Redis support, AI query assistance, or new UI themes? Start a discussion!
+- 🔀 **Submit Pull Requests**: Feel free to pick up open tasks, improve docs, or add test coverage.
 
-### Linux & macOS (Bash):
+#### Local Development Setup:
 ```bash
-npm run build:sh
-# Atau langsung jalankan script Bash:
-bash ./scripts/build.sh
-```
+# Clone the repository
+git clone https://github.com/KyyTzy09/db-studio.git
+cd db-studio
 
-Aset kompilasi akan otomatis ditempatkan di folder `bin/`:
-- `bin/dbstudio.exe` (Windows local binary)
-- `bin/dbstudio-win-x64.exe` (Windows 64-bit)
-- `bin/dbstudio-linux-x64` (Linux 64-bit)
-- `bin/dbstudio-darwin-arm64` (macOS Apple Silicon)
-- `bin/dbstudio-darwin-x64` (macOS Intel)
-- `bin/cli.js` (Node.js NPM Runner Launcher)
+# Install web dependencies
+cd web && bun install && cd ..
+
+# Build Web UI & compile Go binary locally
+npm run build
+
+# Run the compiled binary
+./bin/dbstudio
+```
 
 ---
 
-## 📄 Lisensi
-[MIT License](LICENSE) © DBStudio Team
+## 🚀 Automated CI/CD Deployment
+
+DBStudio utilizes GitHub Actions to automatically build cross-platform binaries (Windows, Linux, macOS ARM64/x64) and publish to the [NPM Registry](https://www.npmjs.com/package/dbstudio) whenever a release tag is pushed:
+
+```bash
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
+> **Note for Maintainers**: Ensure `NPM_TOKEN` is set in your GitHub repository secrets (`Settings -> Secrets and variables -> Actions`).
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. Created with ❤️ by [KyyTzy09](https://github.com/KyyTzy09).
+
+See [LICENSE](LICENSE) for more information.

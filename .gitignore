@@ -12,3 +12,6 @@ bin/*
 *.exe~
 *.log
 test
+
+# Internal Docs & Notes
+docs/
