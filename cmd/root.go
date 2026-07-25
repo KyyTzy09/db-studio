@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 
 	"db-studio-go/internal/config"
@@ -19,8 +20,9 @@ import (
 )
 
 var (
-	portFlag int
-	WebFS    embed.FS
+	portFlag    int
+	verboseFlag bool
+	WebFS       embed.FS
 )
 
 func NewRootCmd(webFS embed.FS) *cobra.Command {
@@ -30,6 +32,11 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 		Use:   "dbstudio",
 		Short: "One command database studio for every developer",
 		Long:  `DBStudio auto-detects database configurations in your project and launches a local web studio interface instantly.`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if verboseFlag {
+				ui.Logger.SetLevel(log.DebugLevel)
+			}
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cwd, err := os.Getwd()
 			if err != nil {
@@ -106,6 +113,7 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().IntVarP(&portFlag, "port", "p", 8080, "Port for DBStudio Web HTTP Server")
+	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Enable verbose output and logs")
 
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(doctorCmd)

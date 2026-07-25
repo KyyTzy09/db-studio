@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
 	"db-studio-go/internal/config"
@@ -40,31 +38,34 @@ var connectCmd = &cobra.Command{
 		)
 
 		detectedConns, _ := compositeScanner.Scan(context.Background(), cwd)
-		reader := bufio.NewReader(os.Stdin)
 
 		var selectedConn *config.ConnectionConfig
 
 		if len(detectedConns) > 0 {
-			ui.PrintInfo("Auto-detected connections:")
-
+			var options []huh.Option[int]
 			for i, conn := range detectedConns {
+				var label string
 				if conn.Driver == config.DriverSQLite {
-					fmt.Printf("   [%d] %s ➔ %s (%s)\n", i+1, ui.BoldText(conn.Name), conn.FilePath, conn.Driver)
+					label = fmt.Sprintf("%s → %s (%s)", conn.Name, conn.FilePath, conn.Driver)
 				} else {
-					fmt.Printf("   [%d] %s ➔ %s:%d/%s (%s)\n", i+1, ui.BoldText(conn.Name), conn.Host, conn.Port, conn.Database, conn.Driver)
+					label = fmt.Sprintf("%s → %s:%d/%s (%s)", conn.Name, conn.Host, conn.Port, conn.Database, conn.Driver)
 				}
+				options = append(options, huh.NewOption(label, i))
 			}
+			options = append(options, huh.NewOption("Manual Connection Setup (Wizard)", -1))
 
-			manualChoiceIdx := len(detectedConns) + 1
-			fmt.Printf("   [%d] %s\n", manualChoiceIdx, ui.Gray("Manual Connection Setup (Wizard)"))
-			fmt.Printf("\nSelect [1-%d]: ", manualChoiceIdx)
+			var selectedIdx int
+			connSelectForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[int]().
+						Title("Select Database Connection").
+						Options(options...).
+						Value(&selectedIdx),
+				),
+			)
 
-			choiceStr, _ := reader.ReadString('\n')
-			choiceStr = strings.TrimSpace(choiceStr)
-			choiceIdx, _ := strconv.Atoi(choiceStr)
-
-			if choiceIdx >= 1 && choiceIdx <= len(detectedConns) {
-				selectedConn = &detectedConns[choiceIdx-1]
+			if err := connSelectForm.Run(); err == nil && selectedIdx >= 0 && selectedIdx < len(detectedConns) {
+				selectedConn = &detectedConns[selectedIdx]
 			}
 		}
 

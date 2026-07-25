@@ -2,92 +2,90 @@ package ui
 
 import (
 	"fmt"
-	"strings"
+	"os"
+	"time"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 )
 
-// ANSI Escape Codes for Minimal & Professional Styling
-const (
-	Reset       = "\033[0m"
-	Bold        = "\033[1m"
-	Dim         = "\033[2m"
-	GreenColor  = "\033[32m"
-	YellowColor = "\033[33m"
-	RedColor    = "\033[31m"
-	BlueColor   = "\033[34m"
-	CyanColor   = "\033[36m"
-	GrayColor   = "\033[90m"
+var (
+	// Lip Gloss Color Definitions (Semantic)
+	GreenStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	YellowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+	RedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	BlueStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	GrayStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	BoldStyle   = lipgloss.NewStyle().Bold(true)
+
+	// Box Banner Style
+	BannerStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(0, 5).
+			Bold(true)
+
+	// Charm Logger
+	Logger = log.NewWithOptions(os.Stderr, log.Options{
+		ReportTimestamp: false,
+		ReportCaller:    false,
+		TimeFormat:      time.Kitchen,
+	})
 )
 
-// Semantic Color Helpers
-func Green(s string) string {
-	return GreenColor + s + Reset
-}
-
-func Yellow(s string) string {
-	return YellowColor + s + Reset
-}
-
-func Red(s string) string {
-	return RedColor + s + Reset
-}
-
-func Blue(s string) string {
-	return BlueColor + s + Reset
-}
-
-func Gray(s string) string {
-	return GrayColor + s + Reset
-}
-
-func BoldText(s string) string {
-	return Bold + s + Reset
-}
-
-// PrintBanner prints a clean rounded box banner as specified in CMD_DESIGN.md
+// PrintBanner prints a clean rounded box banner using Lip Gloss
 func PrintBanner(version string) {
-	title := fmt.Sprintf("           DBStudio %s            ", version)
-	borderWidth := len(title)
-	border := strings.Repeat("─", borderWidth)
-
-	fmt.Println(Gray("╭" + border + "╮"))
-	fmt.Println(Gray("│") + BoldText(title) + Gray("│"))
-	fmt.Println(Gray("╰" + border + "╯"))
+	content := fmt.Sprintf("DBStudio %s", version)
+	fmt.Println(BannerStyle.Render(content))
 	fmt.Println()
 }
 
-// Standard Status Messages
+// Standard Status Messages formatted to match CMD_DESIGN.md exactly
 func PrintScanning() {
-	fmt.Println(Blue("🔍 Scanning project..."))
+	fmt.Println(BlueStyle.Render("🔍 Scanning project..."))
 }
 
 func PrintSuccess(msg string) {
-	fmt.Println(Green("✔ ") + msg)
+	fmt.Println(GreenStyle.Render("✔ ") + msg)
 }
 
 func PrintWarning(msg string) {
-	fmt.Println(Yellow("⚠ ") + msg)
+	fmt.Println(YellowStyle.Render("⚠ ") + msg)
 }
 
 func PrintError(msg string) {
-	fmt.Println(Red("✖ ") + msg)
+	fmt.Println(RedStyle.Render("✖ ") + msg)
 }
 
 func PrintInfo(msg string) {
-	fmt.Println(Blue("ℹ ") + msg)
+	fmt.Println(BlueStyle.Render("ℹ ") + msg)
 }
 
 func PrintStarting() {
-	fmt.Println(Blue("\n🚀 Starting Studio..."))
+	fmt.Println(BlueStyle.Render("\n🚀 Starting Studio..."))
 }
 
 func PrintListening(url string) {
-	fmt.Println(Green("✔ Listening on ") + BoldText(url))
+	fmt.Println(GreenStyle.Render("✔ Listening on ") + BoldStyle.Render(url))
 }
 
 func PrintOpeningBrowser() {
-	fmt.Println(Blue("🌐 Opening browser..."))
+	fmt.Println(BlueStyle.Render("🌐 Opening browser..."))
 }
 
 func PrintReady() {
-	fmt.Println(Green("✨ Ready.\n"))
+	fmt.Println(GreenStyle.Render("✨ Ready.\n"))
 }
+
+// Verbose Log Helpers
+func LogVerbose(msg string, keyvals ...interface{}) {
+	Logger.Debug(msg, keyvals...)
+}
+
+// Backward-compatible Lip Gloss String Formatters
+func Green(s string) string    { return GreenStyle.Render(s) }
+func Yellow(s string) string   { return YellowStyle.Render(s) }
+func Red(s string) string      { return RedStyle.Render(s) }
+func Blue(s string) string     { return BlueStyle.Render(s) }
+func Gray(s string) string     { return GrayStyle.Render(s) }
+func BoldText(s string) string { return BoldStyle.Render(s) }
