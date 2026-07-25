@@ -32,15 +32,18 @@
 	let isSubmitting = $state(false);
 	let errorMessage = $state('');
 
-	$effect(() => {
-		if (isOpen) {
-			formData = {};
+	function handleOpenChange(open: boolean) {
+		if (open) {
 			errorMessage = '';
+			const initial: Record<string, any> = {};
 			columns.forEach((col: any) => {
-				formData[col.name] = '';
+				initial[col.name] = '';
 			});
+			formData = initial;
+		} else {
+			handleClose();
 		}
-	});
+	}
 
 	function handleClose() {
 		isOpen = false;
@@ -70,14 +73,14 @@
 	}
 </script>
 
-<Dialog bind:open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+<Dialog bind:open={isOpen} onOpenChange={handleOpenChange}>
 	<DialogContent class="max-w-lg">
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-1.5 text-base font-bold">
 				<Plus class="size-4 text-success" /> Insert Row to <span class="text-primary font-mono">{tableName}</span>
 			</DialogTitle>
 			<DialogDescription>
-				Fill in the column values to insert a new row into database.
+				Fill in column values to insert a new record into database.
 			</DialogDescription>
 		</DialogHeader>
 

@@ -4,6 +4,7 @@
 	import InsertRowModal from '../modals/InsertRowModal.svelte';
 	import EditRowModal from '../modals/EditRowModal.svelte';
 	import ImportModal from '../modals/ImportModal.svelte';
+	import { useEditRow } from '../../hooks/useEditRow.svelte';
 	import type { QueryResult, TableSchema } from '$lib/api';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
@@ -33,9 +34,7 @@
 
 	// Modals State
 	let showInsertModal = $state(false);
-	let showEditModal = $state(false);
 	let showImportModal = $state(false);
-	let selectedRowToEdit = $state<Record<string, any> | null>(null);
 
 	// Delete Confirmation Modal
 	let showDeleteModal = $state(false);
@@ -79,6 +78,12 @@
 	let schemaColumns = $derived(schema?.columns || []);
 	let rowsList = $derived(dataResult?.rows || []);
 
+	// Initialize Edit Row Hook controller
+	const editRowController = useEditRow(
+		() => tableName,
+		() => schemaColumns
+	);
+
 	let filteredRows = $derived(
 		rowsList.filter((row: any) =>
 			Object.values(row || {}).some((val) =>
@@ -92,11 +97,6 @@
 	let paginatedRows = $derived(
 		filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 	);
-
-	function openEditModal(row: Record<string, any>) {
-		selectedRowToEdit = row;
-		showEditModal = true;
-	}
 
 	function openDeleteModal(row: Record<string, any>) {
 		selectedRowToDelete = row;
@@ -247,7 +247,7 @@
 									<td class="px-4 py-2.5 text-center flex justify-center gap-1">
 										<button
 											type="button"
-											onclick={() => openEditModal(row)}
+											onclick={() => editRowController.openModal(row)}
 											class="p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer"
 											title="Edit row"
 										>
@@ -311,9 +311,7 @@
 <EditRowModal
 	{tableName}
 	columns={schemaColumns}
-	rowData={selectedRowToEdit}
-	bind:isOpen={showEditModal}
-	onClose={() => (showEditModal = false)}
+	controller={editRowController}
 	onSuccess={() => loadData(tableName)}
 />
 
