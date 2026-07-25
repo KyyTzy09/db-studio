@@ -3,11 +3,12 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { sql } from '@codemirror/lang-sql';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import { executeRawQuery, fetchTables, type QueryResult } from '../../../data/services';
+	import { executeRawQuery, fetchTables } from '../../../data/services';
 	import { exportToCSV, exportToJSON } from '../../utils/exportUtils';
 	import { tablesList } from '../../stores/dbStore';
 	import { Button } from '../shadcn/button';
 	import { Play, Terminal, Download, AlertTriangle } from '@lucide/svelte';
+	import type { QueryResult } from '$lib/api';
 
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	let editorView = $state<EditorView | null>(null);

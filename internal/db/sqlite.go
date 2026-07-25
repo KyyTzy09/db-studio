@@ -297,3 +297,67 @@ func (s *SQLiteDriver) BatchInsertOrUpdate(ctx context.Context, table string, ro
 
 	return totalAffected, nil
 }
+
+func (s *SQLiteDriver) CreateTable(ctx context.Context, req CreateTableRequest) error {
+	if err := s.Connect(ctx); err != nil {
+		return err
+	}
+	if req.TableName == "" || len(req.Columns) == 0 {
+		return fmt.Errorf("table name and at least one column are required")
+	}
+
+	var colDefs []string
+	var pks []string
+
+	for _, c := range req.Columns {
+		def := fmt.Sprintf("\"%s\" %s", c.Name, c.DataType)
+		if c.IsPrimaryKey && c.AutoIncrement {
+			def = fmt.Sprintf("\"%s\" INTEGER PRIMARY KEY AUTOINCREMENT", c.Name)
+		} else {
+			if !c.IsNullable {
+				def += " NOT NULL"
+			}
+			if c.DefaultValue != "" {
+				def += fmt.Sprintf(" DEFAULT %s", c.DefaultValue)
+			}
+			if c.IsPrimaryKey {
+				pks = append(pks, fmt.Sprintf("\"%s\"", c.Name))
+			}
+		}
+		colDefs = append(colDefs, def)
+	}
+
+	if len(pks) > 0 {
+		colDefs = append(colDefs, fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pks, ", ")))
+	}
+
+	query := fmt.Sprintf("CREATE TABLE \"%s\" (\n  %s\n)", req.TableName, strings.Join(colDefs, ",\n  "))
+	_, err := s.db.ExecContext(ctx, query)
+	return err
+}
+
+func (s *SQLiteDriver) AddColumn(ctx context.Context, table string, col ColumnSpec) error {
+	if err := s.Connect(ctx); err != nil {
+		return err
+	}
+	def := fmt.Sprintf("\"%s\" %s", col.Name, col.DataType)
+	if !col.IsNullable {
+		def += " NOT NULL"
+	}
+	if col.DefaultValue != "" {
+		def += fmt.Sprintf(" DEFAULT %s", col.DefaultValue)
+	}
+
+	query := fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN %s", table, def)
+	_, err := s.db.ExecContext(ctx, query)
+	return err
+}
+
+func (s *SQLiteDriver) DropColumn(ctx context.Context, table string, colName string) error {
+	if err := s.Connect(ctx); err != nil {
+		return err
+	}
+	query := fmt.Sprintf("ALTER TABLE \"%s\" DROP COLUMN \"%s\"", table, colName)
+	_, err := s.db.ExecContext(ctx, query)
+	return err
+}

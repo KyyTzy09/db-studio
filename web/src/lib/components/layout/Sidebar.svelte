@@ -3,9 +3,9 @@
 	import { connectionStatus, tablesList } from '../../stores/dbStore';
 	import { fetchConnectionStatus, fetchTables } from '../../../data/services';
 	import type { TableInfo } from '$lib/api';
-	import { Input } from '../shadcn/input';
-	import { Button } from '../shadcn/button';
-	import { Database, Table, Search, Sun, Moon, RefreshCw } from '@lucide/svelte';
+	import CreateTableModal from '../modals/CreateTableModal.svelte';
+	import { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
+	import { Database, Table, Search, Sun, Moon, RefreshCw, Plus } from '@lucide/svelte';
 
 	let { selectedTable, onSelectTable, activeTab, onSelectTab } = $props<{
 		selectedTable: string | null;
@@ -17,6 +17,8 @@
 	let searchQuery = $state('');
 	let loading = $state(true);
 	let isDark = $state(true);
+
+	const schemaEditorController = useSchemaEditor();
 
 	onMount(async () => {
 		// Initialize theme state from html class or dark default
@@ -168,8 +170,15 @@
 
 	<!-- Tables List -->
 	<div class="flex-1 overflow-auto px-2 space-y-0.5">
-		<div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex justify-between">
+		<div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
 			<span>Tables ({filteredTables.length})</span>
+			<button
+				type="button"
+				class="flex items-center gap-1 text-[10px] text-primary hover:underline font-bold"
+				onclick={() => schemaEditorController.openCreateTableModal()}
+			>
+				<Plus class="size-3" /> New
+			</button>
 		</div>
 
 		{#if loading}
@@ -201,4 +210,6 @@
 			{/each}
 		{/if}
 	</div>
+
+	<CreateTableModal controller={schemaEditorController} />
 </aside>

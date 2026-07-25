@@ -3,9 +3,13 @@
 	import InsertRowModal from '../modals/InsertRowModal.svelte';
 	import EditRowModal from '../modals/EditRowModal.svelte';
 	import ImportModal from '../modals/ImportModal.svelte';
+	import CreateTableModal from '../modals/CreateTableModal.svelte';
+	import AddColumnModal from '../modals/AddColumnModal.svelte';
+	import TableSchemaView from './TableSchemaView.svelte';
 	import { useEditRow } from '../../hooks/useEditRow.svelte';
 	import { useInsertRow } from '../../hooks/useInsertRow.svelte';
 	import { useImportData } from '../../hooks/useImportData.svelte';
+	import { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
 	import { useTableData, type FilterOperator } from '../../hooks/useTableData.svelte';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
@@ -34,13 +38,17 @@
 		ArrowUp,
 		ArrowDown,
 		ArrowUpDown,
+		Layers,
 		X
 	} from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
 
+	let activeMainTab = $state<'grid' | 'schema'>('grid');
+
 	// Table Data Controller Hook
 	const tableData = useTableData(() => tableName);
+	const schemaEditorController = useSchemaEditor();
 
 	$effect(() => {
 		if (tableName) {
@@ -110,6 +118,47 @@
 </script>
 
 <div class="flex-1 flex flex-col h-full bg-background text-foreground overflow-hidden">
+	<!-- Top Navigation Tabs (Data Grid vs Structure) -->
+	<div class="px-6 pt-2 pb-0 border-b border-border bg-card/60 flex items-center justify-between">
+		<div class="flex items-center gap-1">
+			<button
+				type="button"
+				class={`px-4 py-2 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${activeMainTab === 'grid' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+				onclick={() => (activeMainTab = 'grid')}
+			>
+				<Database class="size-3.5" /> Data Grid
+			</button>
+
+			<button
+				type="button"
+				class={`px-4 py-2 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${activeMainTab === 'schema' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+				onclick={() => (activeMainTab = 'schema')}
+			>
+				<Layers class="size-3.5" /> Structure & Columns
+			</button>
+		</div>
+
+		{#if activeMainTab === 'schema'}
+			<Button
+				variant="outline"
+				size="sm"
+				class="text-xs font-semibold gap-1 mb-1.5"
+				onclick={() => schemaEditorController.openAddColumnModal(tableName)}
+			>
+				<Plus class="size-3.5" /> Add Column
+			</Button>
+		{/if}
+	</div>
+
+	{#if activeMainTab === 'schema'}
+		<div class="flex-1 overflow-y-auto">
+			<TableSchemaView
+				schema={tableData.schema}
+				{tableName}
+				{schemaEditorController}
+			/>
+		</div>
+	{:else}
 	<!-- Toolbar -->
 	<div class="px-6 py-3 border-b border-border bg-card/40 flex flex-wrap items-center justify-between gap-4">
 		<div class="flex items-center gap-3">
@@ -396,6 +445,7 @@
 			</div>
 		</div>
 	{/if}
+	{/if}
 </div>
 
 <!-- Modals with Shadcn Dialog & Controller Props -->
@@ -417,6 +467,14 @@
 	{tableName}
 	controller={importDataController}
 	onSuccess={() => tableData.loadData()}
+/>
+
+<AddColumnModal
+	controller={schemaEditorController}
+/>
+
+<CreateTableModal
+	controller={schemaEditorController}
 />
 
 <!-- Delete Confirmation Shadcn AlertDialog -->

@@ -36,6 +36,22 @@ type QueryResult struct {
 	ExecutionMs  int64                    `json:"execution_ms"`
 }
 
+// ColumnSpec defines a column for table creation and schema alteration
+type ColumnSpec struct {
+	Name          string `json:"name"`
+	DataType      string `json:"data_type"`
+	IsPrimaryKey  bool   `json:"is_primary_key"`
+	IsNullable    bool   `json:"is_nullable"`
+	DefaultValue  string `json:"default_value,omitempty"`
+	AutoIncrement bool   `json:"auto_increment,omitempty"`
+}
+
+// CreateTableRequest holds the payload to create a new table
+type CreateTableRequest struct {
+	TableName string       `json:"table_name"`
+	Columns   []ColumnSpec `json:"columns"`
+}
+
 // Database defines standard operations for supported database drivers
 type Database interface {
 	Connect(ctx context.Context) error
@@ -48,5 +64,8 @@ type Database interface {
 	UpdateRow(ctx context.Context, table string, pk map[string]interface{}, data map[string]interface{}) error
 	DeleteRow(ctx context.Context, table string, pk map[string]interface{}) error
 	BatchInsertOrUpdate(ctx context.Context, table string, rows []map[string]interface{}, mode string) (int64, error)
+	CreateTable(ctx context.Context, req CreateTableRequest) error
+	AddColumn(ctx context.Context, table string, col ColumnSpec) error
+	DropColumn(ctx context.Context, table string, colName string) error
 	Config() config.ConnectionConfig
 }

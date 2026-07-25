@@ -54,3 +54,15 @@ func (s *TableService) BatchInsertOrUpdate(ctx context.Context, tableName string
 	}
 	return s.driver.BatchInsertOrUpdate(ctx, tableName, payload.Rows, mode)
 }
+
+func (s *TableService) CreateTable(ctx context.Context, req db.CreateTableRequest) error {
+	return s.driver.CreateTable(ctx, req)
+}
+
+func (s *TableService) AddColumn(ctx context.Context, tableName string, col db.ColumnSpec) error {
+	return s.driver.AddColumn(ctx, tableName, col)
+}
+
+func (s *TableService) DropColumn(ctx context.Context, tableName, colName string) error {
+	return s.driver.DropColumn(ctx, tableName, colName)
+}

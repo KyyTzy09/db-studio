@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"db-studio-go/internal/db"
 	"db-studio-go/internal/http/models"
 	"db-studio-go/internal/http/services"
 )
@@ -111,4 +112,47 @@ func (h *TableHandler) HandleBatchInsertOrUpdate(w http.ResponseWriter, r *http.
 		Success:      true,
 		AffectedRows: affected,
 	})
+}
+
+func (h *TableHandler) HandleCreateTable(w http.ResponseWriter, r *http.Request) {
+	var req db.CreateTableRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.RespondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
+		return
+	}
+
+	if err := h.service.CreateTable(r.Context(), req); err != nil {
+		h.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.RespondJSON(w, http.StatusCreated, models.MessageResponse{Message: "Table created successfully"})
+}
+
+func (h *TableHandler) HandleAddColumn(w http.ResponseWriter, r *http.Request) {
+	tableName := chi.URLParam(r, "name")
+	var col db.ColumnSpec
+	if err := json.NewDecoder(r.Body).Decode(&col); err != nil {
+		h.RespondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
+		return
+	}
+
+	if err := h.service.AddColumn(r.Context(), tableName, col); err != nil {
+		h.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, models.MessageResponse{Message: "Column added successfully"})
+}
+
+func (h *TableHandler) HandleDropColumn(w http.ResponseWriter, r *http.Request) {
+	tableName := chi.URLParam(r, "name")
+	colName := chi.URLParam(r, "col")
+
+	if err := h.service.DropColumn(r.Context(), tableName, colName); err != nil {
+		h.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, models.MessageResponse{Message: "Column dropped successfully"})
 }

@@ -5,16 +5,23 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
+
+	"db-studio-go/internal/ui"
 )
 
-const AppVersion = "v0.1.0-mvp"
+const AppVersion = "v0.1.0"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of DBStudio",
 	Long:  `Display DBStudio build version, Go runtime version, and operating system architecture.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("⚡ DBStudio %s (%s/%s, %s)\n", AppVersion, runtime.GOOS, runtime.GOARCH, runtime.Version())
+		ui.PrintBanner(AppVersion)
+		fmt.Printf("%s DBStudio %s %s\n",
+			ui.Green("✔"),
+			ui.BoldText(AppVersion),
+			ui.Gray(fmt.Sprintf("(%s/%s, %s)", runtime.GOOS, runtime.GOARCH, runtime.Version())),
+		)
 	},
 }
 

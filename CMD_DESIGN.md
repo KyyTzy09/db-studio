@@ -385,3 +385,11 @@ Not:
 "This terminal looks cool."
 
 Speed and clarity always come before visual effects.
+
+## Required
+Must Use these libraries for better design cmd:
+Bubble Tea → engine TUI
+Lip Gloss → styling
+Bubbles → spinner, progress, viewport
+Huh → wizard/form sederhana (atau pakai Bubble Tea penuh kalau ingin konsisten)
+Charm Log → logging

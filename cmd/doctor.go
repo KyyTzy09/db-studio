@@ -10,6 +10,7 @@ import (
 
 	"db-studio-go/internal/config"
 	"db-studio-go/internal/db"
+	"db-studio-go/internal/ui"
 )
 
 var doctorCmd = &cobra.Command{
@@ -27,9 +28,8 @@ var doctorCmd = &cobra.Command{
 			return fmt.Errorf("config manager error: %w", err)
 		}
 
-		fmt.Println("🏥 DBStudio Doctor - Diagnostic Health Check")
-		fmt.Printf("📂 Project Directory: %s\n", cwd)
-		fmt.Printf("📄 Config File Path: %s\n\n", configMgr.GetConfigFilePath())
+		ui.PrintBanner(AppVersion)
+		ui.PrintInfo(fmt.Sprintf("Diagnosing project: %s", ui.Gray(cwd)))
 
 		conn, found, err := configMgr.FindByProjectPath(cwd)
 		if err != nil {
@@ -37,28 +37,29 @@ var doctorCmd = &cobra.Command{
 		}
 
 		if !found || conn == nil {
-			fmt.Println("❌ Status: No saved connection found for this project.")
-			fmt.Println("👉 Run 'dbstudio connect' or 'dbstudio' to configure connection.")
+			ui.PrintError("No saved database connection found for this project.")
+			fmt.Printf("   %s Run 'dbstudio connect' or 'dbstudio' to setup connection.\n\n", ui.Gray("└─"))
 			return nil
 		}
 
-		fmt.Println("==================================================")
-		fmt.Printf(" Connection Name : %s\n", conn.Name)
-		fmt.Printf(" Driver Type     : %s\n", conn.Driver)
+		fmt.Println()
 		if conn.Driver == config.DriverSQLite {
-			fmt.Printf(" File Path       : %s\n", conn.FilePath)
+			fmt.Printf("   %s %s: %s (%s)\n", ui.Blue("🗄"), ui.BoldText("Target DB"), conn.Name, conn.FilePath)
 		} else {
-			fmt.Printf(" Host & Port     : %s:%d\n", conn.Host, conn.Port)
-			fmt.Printf(" Username        : %s\n", conn.User)
-			fmt.Printf(" Database Name   : %s\n", conn.Database)
+			fmt.Printf("   %s %s: %s (%s@%s:%d/%s)\n",
+				ui.Blue("🗄"),
+				ui.BoldText("Target DB"),
+				conn.Name,
+				conn.Driver,
+				conn.Host,
+				conn.Port,
+				conn.Database,
+			)
 		}
-		fmt.Println("==================================================")
-
-		fmt.Print("⏳ Testing Connection Ping... ")
 
 		driverInst, err := db.NewDriver(*conn)
 		if err != nil {
-			fmt.Printf("❌ FAILED (%v)\n", err)
+			ui.PrintError(fmt.Sprintf("Driver initialization failed: %v", err))
 			return nil
 		}
 		defer driverInst.Disconnect()
@@ -68,16 +69,17 @@ var doctorCmd = &cobra.Command{
 		defer cancel()
 
 		if err := driverInst.Ping(ctx); err != nil {
-			fmt.Printf("❌ FAILED\n")
-			fmt.Printf("⚠️  Error Details: %v\n", err)
+			ui.PrintError(fmt.Sprintf("Connection failed (%v)", err))
+			fmt.Printf("   %s Check host availability, credentials, or network status.\n\n", ui.Gray("└─"))
 		} else {
 			latency := time.Since(start).Milliseconds()
-			fmt.Printf("✅ ONLINE (%d ms latency)\n", latency)
+			ui.PrintSuccess(fmt.Sprintf("Connected to %s %s", conn.Driver, ui.Gray(fmt.Sprintf("(%d ms)", latency))))
 
 			tables, tErr := driverInst.GetTables(ctx)
 			if tErr == nil {
-				fmt.Printf("📊 Detected Tables: %d table(s) in schema\n", len(tables))
+				ui.PrintSuccess(fmt.Sprintf("%d table(s) detected in schema", len(tables)))
 			}
+			ui.PrintReady()
 		}
 
 		return nil

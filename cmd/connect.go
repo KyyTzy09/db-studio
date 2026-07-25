@@ -12,6 +12,7 @@ import (
 
 	"db-studio-go/internal/config"
 	"db-studio-go/internal/scanner"
+	"db-studio-go/internal/ui"
 	"db-studio-go/internal/wizard"
 )
 
@@ -30,7 +31,8 @@ var connectCmd = &cobra.Command{
 			return fmt.Errorf("config manager error: %w", err)
 		}
 
-		fmt.Println("🔍 DBStudio: Scanning project for database configurations...")
+		ui.PrintBanner(AppVersion)
+		ui.PrintScanning()
 
 		compositeScanner := scanner.NewCompositeScanner(
 			scanner.NewEnvScanner(),
@@ -43,22 +45,19 @@ var connectCmd = &cobra.Command{
 		var selectedConn *config.ConnectionConfig
 
 		if len(detectedConns) > 0 {
-			fmt.Println("\n==================================================")
-			fmt.Println(" 🛠️  DBStudio Connection Manager")
-			fmt.Println("==================================================")
-			fmt.Println("Ditemukan koneksi otomatis di proyek ini:")
+			ui.PrintInfo("Auto-detected connections:")
 
 			for i, conn := range detectedConns {
 				if conn.Driver == config.DriverSQLite {
-					fmt.Printf(" [%d] %s ➔ %s\n", i+1, conn.Name, conn.FilePath)
+					fmt.Printf("   [%d] %s ➔ %s (%s)\n", i+1, ui.BoldText(conn.Name), conn.FilePath, conn.Driver)
 				} else {
-					fmt.Printf(" [%d] %s ➔ %s:%d (Database: %s)\n", i+1, conn.Name, conn.Host, conn.Port, conn.Database)
+					fmt.Printf("   [%d] %s ➔ %s:%d/%s (%s)\n", i+1, ui.BoldText(conn.Name), conn.Host, conn.Port, conn.Database, conn.Driver)
 				}
 			}
 
 			manualChoiceIdx := len(detectedConns) + 1
-			fmt.Printf(" [%d] Input Koneksi Manual (Wizard Baru)\n", manualChoiceIdx)
-			fmt.Printf("\nPilihan [1-%d]: ", manualChoiceIdx)
+			fmt.Printf("   [%d] %s\n", manualChoiceIdx, ui.Gray("Manual Connection Setup (Wizard)"))
+			fmt.Printf("\nSelect [1-%d]: ", manualChoiceIdx)
 
 			choiceStr, _ := reader.ReadString('\n')
 			choiceStr = strings.TrimSpace(choiceStr)
@@ -81,8 +80,8 @@ var connectCmd = &cobra.Command{
 			return fmt.Errorf("failed to save connection: %w", err)
 		}
 
-		fmt.Printf("\n✅ Koneksi '%s' (%s) berhasil disimpan!\n", selectedConn.Name, selectedConn.Driver)
-		fmt.Printf("📂 Global config updated at: %s\n", configMgr.GetConfigFilePath())
+		ui.PrintSuccess(fmt.Sprintf("Connection saved: %s (%s)", selectedConn.Name, selectedConn.Driver))
+		ui.PrintReady()
 		return nil
 	},
 }

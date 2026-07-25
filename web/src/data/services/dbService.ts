@@ -1,6 +1,6 @@
 import type { ConnectionStatus, TableInfo, TableSchema, QueryResult } from '../models';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 
 export async function fetchConnectionStatus(): Promise<ConnectionStatus> {
 	const res = await fetch(`${API_BASE}/connection/status`);

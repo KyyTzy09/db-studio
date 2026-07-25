@@ -134,15 +134,17 @@
 - [x] 🟡 Automatic Port Fallback: Jika port default `8080` terpakai, pilih random available port secara otomatis
 
 ### 5.2 Binary Distribution
-- [x] 🔴 Compilation test untuk Windows (.exe), macOS, dan Linux
-- [ ] 🟡 Buat NPM wrapper package (`npm install -g dbstudio`)
-- [ ] 🟡 Rilis dokumen README.md & panduan instalasi Homebrew/Scoop
+- [x] 🔴 Compilation test untuk Windows (.exe), macOS, dan Linux (`scripts/build.ps1` & `scripts/build.sh`)
+- [x] 🔴 Tampilan CLI Terminal Output diselaraskan 100% dengan `CMD_DESIGN.md` (Box Banner, ANSI colors, Fast/Calm output)
+- [x] 🟡 Buat NPM wrapper package (`npm install -g dbstudio` via `bin/cli.js` & `package.json`)
+- [x] 🟡 Rilis dokumen README.md & panduan instalasi Homebrew/Scoop
 
 ---
 
 ## Phase 6: Post-MVP Roadmap 🔵
 - [ ] 🔵 Support Redis, MongoDB, MariaDB
 - [ ] 🔵 Visual ER Diagram Viewer
+- [x] 🔵 Schema Alteration UI (Visual Table Creator & Column Structure Editor)
 - [x] 🔵 Data Export / Import (CSV, JSON)
 - [ ] 🔵 AI Query Assistant (Natural Language to SQL)
 - [x] 🔵 Dark Mode / Light Mode Toggle

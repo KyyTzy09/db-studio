@@ -14,6 +14,7 @@ import (
 	"db-studio-go/internal/db"
 	httpServer "db-studio-go/internal/http"
 	"db-studio-go/internal/scanner"
+	"db-studio-go/internal/ui"
 	"db-studio-go/internal/wizard"
 )
 
@@ -40,17 +41,18 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 				return fmt.Errorf("config manager error: %w", err)
 			}
 
-			fmt.Println("🔍 DBStudio: Checking database configurations...")
+			// Print Banner
+			ui.PrintBanner(AppVersion)
+			ui.PrintScanning()
 
 			// Step 1: Check saved config in global path (~/.config/dbstudio/connections.json)
 			targetConn, found, err := configMgr.FindByProjectPath(cwd)
 			if err != nil {
-				fmt.Printf("⚠️ Warning reading global config: %v\n", err)
+				ui.PrintWarning(fmt.Sprintf("Global config warning: %v", err))
 			}
 
 			// Step 2: Auto-Detection Scanner if not found in global config
 			if !found || targetConn == nil {
-				fmt.Println("🔍 Running auto-detection scanners (.env & docker-compose)...")
 				compositeScanner := scanner.NewCompositeScanner(
 					scanner.NewEnvScanner(),
 					scanner.NewDockerComposeScanner(),
@@ -59,11 +61,11 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 				detectedConns, _ := compositeScanner.Scan(context.Background(), cwd)
 
 				if len(detectedConns) == 1 {
-					fmt.Printf("✨ Auto-detected 1 connection: %s (%s)\n", detectedConns[0].Name, detectedConns[0].Driver)
+					ui.PrintSuccess(fmt.Sprintf("Auto-detected 1 connection: %s (%s)", detectedConns[0].Name, detectedConns[0].Driver))
 					targetConn = &detectedConns[0]
 					_ = configMgr.SaveConnection(*targetConn)
 				} else if len(detectedConns) > 1 {
-					fmt.Printf("✨ Auto-detected %d database connections. Selecting first: %s\n", len(detectedConns), detectedConns[0].Name)
+					ui.PrintSuccess(fmt.Sprintf("Auto-detected %d database connections. Selecting %s", len(detectedConns), detectedConns[0].Name))
 					targetConn = &detectedConns[0]
 					_ = configMgr.SaveConnection(*targetConn)
 				} else {
@@ -76,8 +78,10 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 					_ = configMgr.SaveConnection(*targetConn)
 				}
 			} else {
-				fmt.Printf("⚡ Found saved connection for project: %s (%s)\n", targetConn.Name, targetConn.Driver)
+				ui.PrintSuccess(fmt.Sprintf("Found saved config: %s (%s)", targetConn.Name, targetConn.Driver))
 			}
+
+			ui.PrintSuccess("Connected")
 
 			// Step 4: Instantiate Database Driver (Lazy Connection)
 			driver, err := db.NewDriver(*targetConn)
@@ -85,25 +89,27 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 				return fmt.Errorf("failed to initialize driver: %w", err)
 			}
 
+			ui.PrintStarting()
+
 			// Step 5: Start Chi HTTP Server (Automatic Port Fallback) & Open Browser
 			srv := httpServer.NewServer(driver, WebFS, portFlag)
 
 			return srv.ListenAndServe(func(actualPort int) {
-				go func() {
-					url := fmt.Sprintf("http://localhost:%d", actualPort)
-					fmt.Printf("🌐 Opening Web Studio at %s...\n", url)
-					openBrowser(url)
-				}()
+				url := fmt.Sprintf("http://localhost:%d", actualPort)
+				ui.PrintListening(url)
+				ui.PrintOpeningBrowser()
+				ui.PrintReady()
+
+				go openBrowser(url)
 			})
 		},
 	}
 
-	rootCmd.Flags().IntVarP(&portFlag, "port", "p", 8080, "Port to run the HTTP web studio server on")
+	rootCmd.PersistentFlags().IntVarP(&portFlag, "port", "p", 8080, "Port for DBStudio Web HTTP Server")
 
-	// Register Subcommands
-	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(versionCmd)
 
 	return rootCmd
 }
@@ -117,8 +123,11 @@ func openBrowser(url string) {
 		err = exec.Command("open", url).Start()
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
 	}
+
 	if err != nil {
-		fmt.Printf("⚠️ Could not open browser automatically: %v\n", err)
+		ui.PrintWarning(fmt.Sprintf("Could not open browser automatically: %v", err))
 	}
 }
