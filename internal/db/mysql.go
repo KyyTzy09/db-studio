@@ -443,6 +443,9 @@ func (m *MySQLDriver) AddColumn(ctx context.Context, table string, col ColumnSpe
 	}
 
 	query := fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN %s", table, def)
+	if col.ForeignKeyTable != "" && col.ForeignKeyColumn != "" {
+		query += fmt.Sprintf(", ADD FOREIGN KEY (`%s`) REFERENCES `%s`(`%s`)", col.Name, col.ForeignKeyTable, col.ForeignKeyColumn)
+	}
 	_, err := m.db.ExecContext(ctx, query)
 	return err
 }

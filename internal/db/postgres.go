@@ -464,6 +464,9 @@ func (p *PostgresDriver) AddColumn(ctx context.Context, table string, col Column
 	if col.DefaultValue != "" {
 		def += fmt.Sprintf(" DEFAULT %s", col.DefaultValue)
 	}
+	if col.ForeignKeyTable != "" && col.ForeignKeyColumn != "" {
+		def += fmt.Sprintf(" REFERENCES %s(%s)", col.ForeignKeyTable, col.ForeignKeyColumn)
+	}
 
 	query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s", table, def)
 	_, err := p.db.ExecContext(ctx, query)

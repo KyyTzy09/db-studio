@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
+	import { tablesList, fetchColumnsForTable } from '../../stores/dbStore';
+	import type { ColumnInfo } from '$lib/api';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
@@ -17,11 +19,25 @@
 		DialogFooter,
 		DialogDescription
 	} from '../shadcn/dialog';
-	import { Plus } from '@lucide/svelte';
+	import { Plus, Link2 } from '@lucide/svelte';
 
 	let { controller } = $props<{
 		controller: ReturnType<typeof useSchemaEditor>;
 	}>();
+
+	let targetColumnsMap = $state<Record<string, ColumnInfo[]>>({});
+
+	async function handleFkTableSelect(selectedTbl: string) {
+		controller.newColumn.fk_table = selectedTbl;
+		if (selectedTbl) {
+			if (!targetColumnsMap[selectedTbl]) {
+				targetColumnsMap[selectedTbl] = await fetchColumnsForTable(selectedTbl);
+			}
+			const cols = targetColumnsMap[selectedTbl] || [];
+			const pk = cols.find((c) => c.is_primary_key);
+			controller.newColumn.fk_column = pk ? pk.name : cols[0]?.name || 'id';
+		}
+	}
 
 	const commonDataTypes = [
 		'INTEGER',
@@ -63,7 +79,7 @@
 					id="add-col-name"
 					type="text"
 					bind:value={controller.newColumn.name}
-					placeholder="e.g. bio, is_active, total_price"
+					placeholder="e.g. user_id, bio, is_active"
 					class="h-9 text-xs font-mono"
 				/>
 			</div>
@@ -115,7 +131,77 @@
 					/>
 					<span class="text-foreground font-medium">Primary Key</span>
 				</label>
+
+				<label class="flex items-center gap-2 cursor-pointer text-xs select-none">
+					<input
+						type="checkbox"
+						checked={controller.newColumn.is_foreign_key}
+						onchange={(e) => {
+							controller.newColumn.is_foreign_key = (e.target as HTMLInputElement).checked;
+							if (controller.newColumn.is_foreign_key && !controller.newColumn.fk_column) {
+								controller.newColumn.fk_column = 'id';
+							}
+						}}
+						class="h-4 w-4 rounded border-input bg-background text-primary focus-visible:ring-1 focus-visible:ring-ring cursor-pointer accent-primary"
+					/>
+					<span class="text-foreground font-medium flex items-center gap-1">
+						<Link2 class="size-3 text-primary" /> Foreign Key
+					</span>
+				</label>
 			</div>
+
+			{#if controller.newColumn.is_foreign_key}
+				<div class="p-3 bg-muted/40 border border-border rounded-lg space-y-3">
+					<div class="flex items-center justify-between text-xs font-semibold text-foreground">
+						<span>Foreign Key Reference</span>
+					</div>
+
+					<div class="grid grid-cols-2 gap-2">
+						<div>
+							<Label class="block text-[11px] text-muted-foreground mb-1">Target Table</Label>
+							<Select
+								type="single"
+								bind:value={controller.newColumn.fk_table}
+								onValueChange={handleFkTableSelect}
+							>
+								<SelectTrigger class="w-full h-8 text-xs font-mono">
+									{controller.newColumn.fk_table || 'Select Table'}
+								</SelectTrigger>
+								<SelectContent>
+									{#each $tablesList as tbl}
+										<SelectItem value={tbl.name} label={tbl.name} class="text-xs font-mono" />
+									{/each}
+								</SelectContent>
+							</Select>
+						</div>
+
+						<div>
+							<Label class="block text-[11px] text-muted-foreground mb-1">Target Column</Label>
+							<Select
+								type="single"
+								bind:value={controller.newColumn.fk_column}
+							>
+								<SelectTrigger class="w-full h-8 text-xs font-mono">
+									{controller.newColumn.fk_column || 'Select Column'}
+								</SelectTrigger>
+								<SelectContent>
+									{#if controller.newColumn.fk_table && targetColumnsMap[controller.newColumn.fk_table]}
+										{#each targetColumnsMap[controller.newColumn.fk_table] as targetCol}
+											<SelectItem
+												value={targetCol.name}
+												label={`${targetCol.name}${targetCol.is_primary_key ? ' (PK)' : ''}`}
+												class="text-xs font-mono"
+											/>
+										{/each}
+									{:else}
+										<SelectItem value="id" label="id (PK)" class="text-xs font-mono" />
+									{/if}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</form>
 
 		<DialogFooter class="pt-2 border-t border-border">

@@ -148,8 +148,7 @@ export function useSchemaEditor() {
 				throw new Error(err.error || 'Failed to create table');
 			}
 
-			const { tables } = await fetchTables();
-			tablesList.set(tables || []);
+			await refreshGlobalTables();
 			closeCreateTableModal();
 			return true;
 		} catch (err: any) {
@@ -180,7 +179,7 @@ export function useSchemaEditor() {
 			}
 
 			closeAddColumnModal();
-			window.location.reload();
+			await refreshGlobalTables();
 			return true;
 		} catch (err: any) {
 			alert(err.message || 'Error adding column');
@@ -205,7 +204,7 @@ export function useSchemaEditor() {
 				throw new Error(err.error || 'Failed to drop column');
 			}
 
-			window.location.reload();
+			await refreshGlobalTables();
 			return true;
 		} catch (err: any) {
 			alert(err.message || 'Error dropping column');

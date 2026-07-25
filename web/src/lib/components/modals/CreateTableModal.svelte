@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { useSchemaEditor } from '../../hooks/useSchemaEditor.svelte';
-	import { tablesList } from '../../stores/dbStore';
+	import { tablesList, fetchColumnsForTable } from '../../stores/dbStore';
+	import type { ColumnInfo } from '$lib/api';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import { Label } from '../shadcn/label';
@@ -25,6 +26,23 @@
 	}>();
 
 	let activeTab = $state<'columns' | 'sql'>('columns');
+	let targetColumnsMap = $state<Record<string, ColumnInfo[]>>({});
+
+	async function loadTargetTableCols(tblName: string) {
+		if (!tblName || targetColumnsMap[tblName]) return;
+		const cols = await fetchColumnsForTable(tblName);
+		targetColumnsMap[tblName] = cols;
+	}
+
+	async function handleFkTableSelect(col: any, selectedTbl: string) {
+		col.fk_table = selectedTbl;
+		if (selectedTbl) {
+			await loadTargetTableCols(selectedTbl);
+			const cols = targetColumnsMap[selectedTbl] || [];
+			const pk = cols.find((c) => c.is_primary_key);
+			col.fk_column = pk ? pk.name : cols[0]?.name || 'id';
+		}
+	}
 
 	const commonDataTypes = [
 		'INTEGER',
@@ -160,7 +178,11 @@
 											{#if col.is_foreign_key}
 												<div class="flex items-center gap-1.5">
 													<Link2 class="size-3.5 text-primary shrink-0" />
-													<Select type="single" bind:value={col.fk_table}>
+													<Select
+														type="single"
+														bind:value={col.fk_table}
+														onValueChange={(val) => handleFkTableSelect(col, val)}
+													>
 														<SelectTrigger class="h-8 w-32 text-[11px] font-mono">
 															{col.fk_table || 'Select Table'}
 														</SelectTrigger>
@@ -171,12 +193,27 @@
 														</SelectContent>
 													</Select>
 													<span class="text-muted-foreground text-[10px]">(</span>
-													<Input
-														type="text"
+													<Select
+														type="single"
 														bind:value={col.fk_column}
-														placeholder="id"
-														class="h-8 w-20 text-xs font-mono"
-													/>
+													>
+														<SelectTrigger class="h-8 w-28 text-[11px] font-mono">
+															{col.fk_column || 'Select Col'}
+														</SelectTrigger>
+														<SelectContent>
+															{#if col.fk_table && targetColumnsMap[col.fk_table]}
+																{#each targetColumnsMap[col.fk_table] as targetCol}
+																	<SelectItem
+																		value={targetCol.name}
+																		label={`${targetCol.name}${targetCol.is_primary_key ? ' (PK)' : ''}`}
+																		class="text-xs font-mono"
+																	/>
+																{/each}
+															{:else}
+																<SelectItem value="id" label="id (PK)" class="text-xs font-mono" />
+															{/if}
+														</SelectContent>
+													</Select>
 													<span class="text-muted-foreground text-[10px]">)</span>
 												</div>
 											{:else}
