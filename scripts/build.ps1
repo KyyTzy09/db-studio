@@ -33,7 +33,11 @@ Write-Host " -> Building Windows x64 (bin/dbstudio-win-x64.exe)..." -ForegroundC
 $env:GOOS = "windows"
 $env:GOARCH = "amd64"
 go build -ldflags="-s -w" -o bin/dbstudio-win-x64.exe main.go
-Copy-Item bin/dbstudio-win-x64.exe bin/dbstudio.exe -Force
+try {
+    Copy-Item bin/dbstudio-win-x64.exe bin/dbstudio.exe -Force -ErrorAction Stop
+} catch {
+    Write-Host "⚠️ Warning: Could not overwrite bin/dbstudio.exe (currently in use by running process)" -ForegroundColor Yellow
+}
 
 # Target 2: Linux x64
 Write-Host " -> Building Linux x64 (bin/dbstudio-linux-x64)..." -ForegroundColor Gray

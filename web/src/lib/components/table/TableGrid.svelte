@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { fetchTableData, fetchTableSchema, deleteTableRow } from '../../../data/services';
 	import { exportToCSV, exportToJSON } from '../../utils/exportUtils';
 	import InsertRowModal from '../modals/InsertRowModal.svelte';
 	import EditRowModal from '../modals/EditRowModal.svelte';
@@ -7,7 +6,7 @@
 	import { useEditRow } from '../../hooks/useEditRow.svelte';
 	import { useInsertRow } from '../../hooks/useInsertRow.svelte';
 	import { useImportData } from '../../hooks/useImportData.svelte';
-	import type { QueryResult, TableSchema } from '$lib/api';
+	import { useTableData, type FilterOperator } from '../../hooks/useTableData.svelte';
 	import { Button } from '../shadcn/button';
 	import { Input } from '../shadcn/input';
 	import {
@@ -20,63 +19,48 @@
 		AlertDialogCancel,
 		AlertDialogAction
 	} from '../shadcn/alert-dialog';
-	import { Search, Plus, Upload, Download, RefreshCw, Pencil, Trash2, Database, AlertTriangle } from '@lucide/svelte';
+	import {
+		Search,
+		Plus,
+		Upload,
+		Download,
+		RefreshCw,
+		Pencil,
+		Trash2,
+		Database,
+		AlertTriangle,
+		Filter,
+		FilterX,
+		ArrowUp,
+		ArrowDown,
+		ArrowUpDown,
+		X
+	} from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
 
-	let dataResult = $state<QueryResult | null>(null);
-	let schema = $state<TableSchema | null>(null);
-	let loading = $state(true);
-	let errorMsg = $state<string | null>(null);
-	let searchQuery = $state('');
-
-	// Pagination
-	let currentPage = $state(1);
-	let pageSize = $state(15);
-
-	// Delete Confirmation Modal
-	let showDeleteModal = $state(false);
-	let selectedRowToDelete = $state<Record<string, any> | null>(null);
-	let deleting = $state(false);
+	// Table Data Controller Hook
+	const tableData = useTableData(() => tableName);
 
 	$effect(() => {
 		if (tableName) {
-			loadData(tableName);
+			tableData.loadData();
 		}
 	});
 
-	async function loadData(name: string) {
-		loading = true;
-		errorMsg = null;
-		currentPage = 1;
-		try {
-			const [dataRes, schemaRes] = await Promise.all([
-				fetchTableData(name).catch(() => null),
-				fetchTableSchema(name).catch(() => null)
-			]);
-			dataResult = dataRes;
-			schema = schemaRes;
-		} catch (err: any) {
-			errorMsg = err.message || 'Failed to load table data';
-		} finally {
-			loading = false;
-		}
-	}
-
 	let columns = $derived(() => {
-		if (dataResult && dataResult.columns && dataResult.columns.length > 0) {
-			return dataResult.columns;
+		if (tableData.dataResult && tableData.dataResult.columns && tableData.dataResult.columns.length > 0) {
+			return tableData.dataResult.columns;
 		}
-		if (schema && schema.columns && schema.columns.length > 0) {
-			return schema.columns.map((c: any) => c.name);
+		if (tableData.schema && tableData.schema.columns && tableData.schema.columns.length > 0) {
+			return tableData.schema.columns.map((c: any) => c.name);
 		}
 		return [];
 	});
 
-	let schemaColumns = $derived(schema?.columns || []);
-	let rowsList = $derived(dataResult?.rows || []);
+	let schemaColumns = $derived(tableData.schema?.columns || []);
 
-	// Initialize Hook Controllers
+	// Controllers for Modals
 	const editRowController = useEditRow(
 		() => tableName,
 		() => schemaColumns
@@ -91,45 +75,37 @@
 		() => tableName
 	);
 
-	let filteredRows = $derived(
-		rowsList.filter((row: any) =>
-			Object.values(row || {}).some((val) =>
-				String(val ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-			)
-		)
-	);
+	// Filter Form State
+	let selectedCol = $state('');
+	let selectedOp = $state<FilterOperator>('contains');
+	let filterValue = $state('');
 
-	let totalPages = $derived(Math.ceil(filteredRows.length / pageSize) || 1);
-
-	let paginatedRows = $derived(
-		filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-	);
-
-	function openDeleteModal(row: Record<string, any>) {
-		selectedRowToDelete = row;
-		showDeleteModal = true;
-	}
-
-	async function confirmDelete() {
-		if (!selectedRowToDelete || !dataResult) return;
-		deleting = true;
-		try {
-			await deleteTableRow(tableName, selectedRowToDelete);
-			showDeleteModal = false;
-			await loadData(tableName);
-		} catch (err: any) {
-			alert(err.message || 'Failed to delete row');
-		} finally {
-			deleting = false;
+	$effect(() => {
+		const cols = columns();
+		if (cols.length > 0 && !selectedCol) {
+			selectedCol = cols[0];
 		}
+	});
+
+	function handleAddFilter() {
+		if (!selectedCol) return;
+		if (selectedOp !== 'is_null' && !filterValue.trim()) return;
+
+		tableData.addFilterRule({
+			column: selectedCol,
+			operator: selectedOp,
+			value: filterValue
+		});
+
+		filterValue = '';
 	}
 
 	function handleExportCSV() {
-		exportToCSV(tableName, columns(), filteredRows);
+		exportToCSV(tableName, columns(), tableData.filteredRows);
 	}
 
 	function handleExportJSON() {
-		exportToJSON(tableName, filteredRows);
+		exportToJSON(tableName, tableData.filteredRows);
 	}
 </script>
 
@@ -137,17 +113,35 @@
 	<!-- Toolbar -->
 	<div class="px-6 py-3 border-b border-border bg-card/40 flex flex-wrap items-center justify-between gap-4">
 		<div class="flex items-center gap-3">
+			<!-- Global Search Input -->
 			<div class="relative w-56">
 				<Search class="size-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
 				<Input
 					type="text"
-					bind:value={searchQuery}
+					bind:value={tableData.searchQuery}
 					placeholder="Search rows..."
 					class="h-8 pl-8 text-xs bg-background"
 				/>
 			</div>
+
+			<!-- Filter Toggle Button with Badge -->
+			<Button
+				variant={tableData.showFilterPanel || tableData.filterRules.length > 0 ? 'default' : 'outline'}
+				size="sm"
+				onclick={() => (tableData.showFilterPanel = !tableData.showFilterPanel)}
+				class="relative"
+			>
+				<Filter class="size-3.5 mr-1" />
+				Filter
+				{#if tableData.filterRules.length > 0}
+					<span class="ml-1.5 rounded-full bg-primary-foreground text-primary font-bold px-1.5 py-0.2 text-[10px]">
+						{tableData.filterRules.length}
+					</span>
+				{/if}
+			</Button>
+
 			<span class="text-xs text-muted-foreground font-medium">
-				{filteredRows.length} rows found
+				{tableData.filteredRows.length} rows found
 			</span>
 		</div>
 
@@ -192,7 +186,7 @@
 			<Button
 				variant="ghost"
 				size="sm"
-				onclick={() => loadData(tableName)}
+				onclick={() => tableData.loadData()}
 			>
 				<RefreshCw class="size-3.5 mr-1" />
 				Refresh
@@ -200,16 +194,97 @@
 		</div>
 	</div>
 
+	<!-- Collapsible Filter Builder Panel -->
+	{#if tableData.showFilterPanel}
+		<div class="px-6 py-3 border-b border-border bg-secondary/30 space-y-3 transition-all animate-in fade-in-50">
+			<div class="flex flex-wrap items-center gap-2 text-xs">
+				<span class="font-semibold text-foreground mr-1 flex items-center gap-1">
+					<Filter class="size-3.5 text-primary" /> Filter Rules:
+				</span>
+
+				<!-- Column Selector -->
+				<select
+					bind:value={selectedCol}
+					class="h-8 rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+				>
+					{#each columns() as col}
+						<option value={col}>{col}</option>
+					{/each}
+				</select>
+
+				<!-- Operator Selector -->
+				<select
+					bind:value={selectedOp}
+					class="h-8 rounded-md border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+				>
+					<option value="contains">contains</option>
+					<option value="equals">equals (=)</option>
+					<option value="gt">greater than (&gt;)</option>
+					<option value="lt">less than (&lt;)</option>
+					<option value="starts">starts with</option>
+					<option value="is_null">is NULL / Empty</option>
+				</select>
+
+				<!-- Filter Value Input -->
+				{#if selectedOp !== 'is_null'}
+					<Input
+						type="text"
+						bind:value={filterValue}
+						placeholder="Enter value..."
+						class="h-8 w-44 text-xs font-mono bg-background"
+						onkeydown={(e) => {
+							if (e.key === 'Enter') handleAddFilter();
+						}}
+					/>
+				{/if}
+
+				<!-- Add Condition Button -->
+				<Button type="button" variant="default" size="xs" onclick={handleAddFilter}>
+					<Plus class="size-3 mr-1" /> Add Condition
+				</Button>
+
+				{#if tableData.filterRules.length > 0 || tableData.searchQuery}
+					<Button type="button" variant="ghost" size="xs" onclick={() => tableData.clearAllFilters()} class="text-destructive hover:bg-destructive/10">
+						<FilterX class="size-3 mr-1" /> Clear All
+					</Button>
+				{/if}
+			</div>
+
+			<!-- Active Filter Rule Chips -->
+			{#if tableData.filterRules.length > 0}
+				<div class="flex flex-wrap items-center gap-1.5 pt-1">
+					{#each tableData.filterRules as rule}
+						<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-card border border-border text-xs font-mono shadow-2xs">
+							<span class="text-primary font-bold">{rule.column}</span>
+							<span class="text-muted-foreground text-[11px]">{rule.operator}</span>
+							{#if rule.operator !== 'is_null'}
+								<span class="text-foreground font-semibold">"{rule.value}"</span>
+							{/if}
+							<button
+								type="button"
+								onclick={() => tableData.removeFilterRule(rule.id)}
+								class="text-muted-foreground hover:text-destructive transition ml-1 cursor-pointer"
+								title="Remove filter rule"
+							>
+								<X class="size-3" />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Main Data Grid Container -->
 	<div class="flex-1 overflow-auto p-6">
-		{#if loading}
+		{#if tableData.loading}
 			<div class="h-64 flex flex-col items-center justify-center text-muted-foreground gap-2">
 				<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
 				<span class="text-xs">Loading table data...</span>
 			</div>
-		{:else if errorMsg}
+		{:else if tableData.errorMsg}
 			<div class="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-				❌ Error: {errorMsg}
+				❌ Error: {tableData.errorMsg}
 			</div>
 		{:else}
 			<div class="border border-border rounded-xl overflow-hidden shadow-xs bg-card">
@@ -218,29 +293,46 @@
 						<tr class="bg-secondary/60 text-muted-foreground font-semibold border-b border-border uppercase tracking-wider">
 							<th class="px-4 py-3 border-r border-border/60 w-12 text-center">#</th>
 							{#each columns() as col}
-								<th class="px-4 py-3 border-r border-border/60 font-mono text-[11px] text-primary">
-									{col}
+								<th class="px-4 py-3 border-r border-border/60 font-mono text-[11px]">
+									<button
+										type="button"
+										onclick={() => tableData.toggleSort(col)}
+										class="flex items-center justify-between w-full hover:text-primary transition-colors cursor-pointer group"
+									>
+										<span class={tableData.sortState.column === col ? 'text-primary font-bold' : ''}>
+											{col}
+										</span>
+										{#if tableData.sortState.column === col}
+											{#if tableData.sortState.direction === 'asc'}
+												<ArrowUp class="size-3.5 text-primary" />
+											{:else if tableData.sortState.direction === 'desc'}
+												<ArrowDown class="size-3.5 text-primary" />
+											{/if}
+										{:else}
+											<ArrowUpDown class="size-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+										{/if}
+									</button>
 								</th>
 							{/each}
 							<th class="px-4 py-3 w-20 text-center">Actions</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-border/60">
-						{#if paginatedRows.length === 0}
+						{#if tableData.paginatedRows.length === 0}
 							<tr>
 								<td colspan={columns().length + 2} class="px-6 py-12 text-center text-muted-foreground">
 									<div class="flex flex-col items-center justify-center gap-2">
 										<Database class="size-8 text-muted-foreground/60" />
-										<span class="font-medium text-foreground">Table "{tableName}" has 0 rows.</span>
-										<span class="text-[11px] text-muted-foreground">Use "+ Add Row" or "Import" to populate records.</span>
+										<span class="font-medium text-foreground">No rows found matching current filters.</span>
+										<span class="text-[11px] text-muted-foreground">Try clearing filters or search keywords.</span>
 									</div>
 								</td>
 							</tr>
 						{:else}
-							{#each paginatedRows as row, i}
+							{#each tableData.paginatedRows as row, i}
 								<tr class="hover:bg-secondary/40 transition-colors">
 									<td class="px-4 py-2.5 border-r border-border/60 text-muted-foreground text-center font-mono">
-										{(currentPage - 1) * pageSize + i + 1}
+										{(tableData.currentPage - 1) * tableData.pageSize + i + 1}
 									</td>
 									{#each columns() as col}
 										<td class="px-4 py-2.5 border-r border-border/60 max-w-xs truncate font-mono text-foreground">
@@ -262,7 +354,7 @@
 										</button>
 										<button
 											type="button"
-											onclick={() => openDeleteModal(row)}
+											onclick={() => tableData.openDeleteModal(row)}
 											class="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-all cursor-pointer"
 											title="Delete row"
 										>
@@ -279,25 +371,25 @@
 	</div>
 
 	<!-- Pagination Controls -->
-	{#if columns().length > 0 && filteredRows.length > 0}
+	{#if columns().length > 0 && tableData.filteredRows.length > 0}
 		<div class="px-6 py-3 border-t border-border bg-card/40 flex items-center justify-between text-xs text-muted-foreground">
 			<div>
-				Showing Page <span class="font-bold text-foreground">{currentPage}</span> of <span class="font-bold text-foreground">{totalPages}</span>
+				Showing Page <span class="font-bold text-foreground">{tableData.currentPage}</span> of <span class="font-bold text-foreground">{tableData.totalPages}</span>
 			</div>
 			<div class="flex items-center gap-2">
 				<Button
 					variant="outline"
 					size="xs"
-					disabled={currentPage === 1}
-					onclick={() => currentPage--}
+					disabled={tableData.currentPage === 1}
+					onclick={() => tableData.currentPage--}
 				>
 					Previous
 				</Button>
 				<Button
 					variant="outline"
 					size="xs"
-					disabled={currentPage >= totalPages}
-					onclick={() => currentPage++}
+					disabled={tableData.currentPage >= tableData.totalPages}
+					onclick={() => tableData.currentPage++}
 				>
 					Next
 				</Button>
@@ -311,24 +403,24 @@
 	{tableName}
 	columns={schemaColumns}
 	controller={insertRowController}
-	onSuccess={() => loadData(tableName)}
+	onSuccess={() => tableData.loadData()}
 />
 
 <EditRowModal
 	{tableName}
 	columns={schemaColumns}
 	controller={editRowController}
-	onSuccess={() => loadData(tableName)}
+	onSuccess={() => tableData.loadData()}
 />
 
 <ImportModal
 	{tableName}
 	controller={importDataController}
-	onSuccess={() => loadData(tableName)}
+	onSuccess={() => tableData.loadData()}
 />
 
 <!-- Delete Confirmation Shadcn AlertDialog -->
-<AlertDialog bind:open={showDeleteModal}>
+<AlertDialog bind:open={tableData.showDeleteModal}>
 	<AlertDialogContent class="max-w-md">
 		<AlertDialogHeader>
 			<AlertDialogTitle class="flex items-center gap-2 text-foreground">
@@ -339,11 +431,11 @@
 			</AlertDialogDescription>
 		</AlertDialogHeader>
 		<AlertDialogFooter>
-			<AlertDialogCancel onclick={() => (showDeleteModal = false)}>
+			<AlertDialogCancel onclick={() => tableData.closeDeleteModal()}>
 				Cancel
 			</AlertDialogCancel>
-			<AlertDialogAction onclick={confirmDelete} disabled={deleting} class="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-				{deleting ? 'Deleting...' : 'Delete Row'}
+			<AlertDialogAction onclick={() => tableData.confirmDelete()} disabled={tableData.deleting} class="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+				{tableData.deleting ? 'Deleting...' : 'Delete Row'}
 			</AlertDialogAction>
 		</AlertDialogFooter>
 	</AlertDialogContent>
