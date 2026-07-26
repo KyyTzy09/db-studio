@@ -1,6 +1,6 @@
 # DBStudio ⚡
 
-[![npm version](https://img.shields.io/npm/v/dbstudio.svg?color=22c55e)](https://www.npmjs.com/package/dbstudio)
+[![npm version](https://img.shields.io/npm/v/%40kyytzy09%2Fdbstudio.svg?color=22c55e)](https://www.npmjs.com/package/@kyytzy09/dbstudio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go)](https://go.dev)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-5-FF3E00?logo=svelte)](https://kit.svelte.dev)
@@ -31,12 +31,12 @@
 ### 1. Instant Run via `npx` (No Installation Required)
 Navigate to any project directory containing a `.env` or `docker-compose.yml` file and run:
 ```bash
-npx dbstudio
+npx @kyytzy09/dbstudio
 ```
 
 ### 2. Global Installation via `npm`
 ```bash
-npm install -g dbstudio
+npm install -g @kyytzy09/dbstudio
 dbstudio
 ```
 
@@ -92,7 +92,7 @@ npm run build
 
 ## 🚀 Automated CI/CD Deployment
 
-DBStudio utilizes GitHub Actions to automatically build cross-platform binaries (Windows, Linux, macOS ARM64/x64) and publish to the [NPM Registry](https://www.npmjs.com/package/dbstudio) whenever a release tag is pushed:
+DBStudio utilizes GitHub Actions to automatically build cross-platform binaries (Windows, Linux, macOS ARM64/x64) and publish to the [NPM Registry](https://www.npmjs.com/package/@kyytzy09/dbstudio) whenever a release tag is pushed:
 
 ```bash
 git tag -a v0.1.0 -m "Release v0.1.0"
