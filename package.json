@@ -1,6 +1,6 @@
 {
   "name": "@kyytzy09/dbstudio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zero-configuration Database Web Studio CLI for Postgres, MySQL, and SQLite",
   "main": "bin/cli.js",
   "bin": {
