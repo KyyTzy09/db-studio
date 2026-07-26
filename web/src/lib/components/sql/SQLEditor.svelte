@@ -6,9 +6,12 @@
 	import { executeRawQuery, fetchTables } from '../../../data/services';
 	import { exportToCSV, exportToJSON } from '../../utils/exportUtils';
 	import { tablesList } from '../../stores/dbStore';
+	import { refreshHistory } from '$lib/stores/historyStore';
 	import { Button } from '../shadcn/button';
-	import { Play, Terminal, Download, AlertTriangle } from '@lucide/svelte';
+	import { Play, Terminal, Download, AlertTriangle, Bookmark } from '@lucide/svelte';
 	import type { QueryResult } from '$lib/api';
+	import QueryHistoryDrawer from '../editor/QueryHistoryDrawer.svelte';
+	import SaveSnippetModal from '../editor/SaveSnippetModal.svelte';
 
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	let editorView = $state<EditorView | null>(null);
@@ -17,6 +20,10 @@
 	let queryResult = $state<QueryResult | null>(null);
 	let executing = $state(false);
 	let errorMsg = $state<string | null>(null);
+
+	// Save Snippet Modal State
+	let isSnippetModalOpen = $state(false);
+	let snippetQueryToSave = $state('');
 
 	// Danger Zone Modal State
 	let showDangerModal = $state(false);
@@ -45,6 +52,15 @@
 		};
 	});
 
+	function updateEditorDoc(newSql: string) {
+		queryInput = newSql;
+		if (editorView) {
+			editorView.dispatch({
+				changes: { from: 0, to: editorView.state.doc.length, insert: newSql }
+			});
+		}
+	}
+
 	async function runQuery(force = false) {
 		if (!queryInput.trim()) return;
 		executing = true;
@@ -70,6 +86,7 @@
 			errorMsg = err.message || 'Failed to execute SQL query';
 		} finally {
 			executing = false;
+			refreshHistory();
 		}
 	}
 
@@ -89,6 +106,11 @@
 			exportToJSON('query_result', queryResult.rows);
 		}
 	}
+
+	function openSaveSnippetModal(sqlToSave?: string) {
+		snippetQueryToSave = sqlToSave || queryInput;
+		isSnippetModalOpen = true;
+	}
 </script>
 
 <div class="flex-1 flex flex-col h-full bg-background text-foreground overflow-hidden">
@@ -99,20 +121,33 @@
 			<h2 class="text-xs font-bold text-foreground uppercase tracking-wider">SQL Workspace</h2>
 		</div>
 
-		<Button
-			variant="default"
-			size="sm"
-			disabled={executing}
-			onclick={() => runQuery(false)}
-		>
-			{#if executing}
-				<div class="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-1.5"></div>
-				<span>Running...</span>
-			{:else}
-				<Play class="size-3.5 mr-1.5 fill-current" />
-				<span>Execute Query</span>
-			{/if}
-		</Button>
+		<div class="flex items-center gap-2">
+			<Button
+				variant="outline"
+				size="sm"
+				class="h-8 text-xs"
+				title="Save current query as a snippet"
+				onclick={() => openSaveSnippetModal()}
+			>
+				<Bookmark class="size-3.5 mr-1.5 text-primary" />
+				<span>Save Snippet</span>
+			</Button>
+
+			<Button
+				variant="default"
+				size="sm"
+				disabled={executing}
+				onclick={() => runQuery(false)}
+			>
+				{#if executing}
+					<div class="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-1.5"></div>
+					<span>Running...</span>
+				{:else}
+					<Play class="size-3.5 mr-1.5 fill-current" />
+					<span>Execute Query</span>
+				{/if}
+			</Button>
+		</div>
 	</div>
 
 	<!-- CodeMirror Editor Box -->
@@ -188,7 +223,19 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Query History & Snippets Bottom Drawer -->
+	<QueryHistoryDrawer
+		onInsertQuery={(sql) => updateEditorDoc(sql)}
+		onSaveSnippet={(sql) => openSaveSnippetModal(sql)}
+	/>
 </div>
+
+<!-- Save Snippet Modal -->
+<SaveSnippetModal
+	bind:isOpen={isSnippetModalOpen}
+	initialQuery={snippetQueryToSave}
+/>
 
 <!-- Danger Zone Safety Warning Modal (HTTP 428) -->
 {#if showDangerModal}

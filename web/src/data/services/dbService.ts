@@ -100,3 +100,49 @@ export async function batchInsertOrUpdate(tableName: string, rows: Record<string
 	}
 	return res.json();
 }
+
+export async function fetchQueryHistory(): Promise<{ history: any[] }> {
+	const res = await fetch(`${API_BASE}/history`);
+	if (!res.ok) throw new Error('Failed to fetch query history');
+	return res.json();
+}
+
+export async function clearQueryHistory(): Promise<void> {
+	const res = await fetch(`${API_BASE}/history`, { method: 'DELETE' });
+	if (!res.ok) throw new Error('Failed to clear query history');
+}
+
+export async function fetchSnippets(): Promise<{ snippets: any[] }> {
+	const res = await fetch(`${API_BASE}/snippets`);
+	if (!res.ok) throw new Error('Failed to fetch query snippets');
+	return res.json();
+}
+
+export async function saveSnippet(snippet: { id?: string; title: string; description?: string; query: string }): Promise<void> {
+	const res = await fetch(`${API_BASE}/snippets`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(snippet)
+	});
+	if (!res.ok) {
+		const json = await res.json();
+		throw new Error(json.error || 'Failed to save snippet');
+	}
+}
+
+export async function deleteSnippet(id: string): Promise<void> {
+	const res = await fetch(`${API_BASE}/snippets/${encodeURIComponent(id)}`, {
+		method: 'DELETE'
+	});
+	if (!res.ok) throw new Error('Failed to delete snippet');
+}
+
+export async function fetchTableDDL(tableName: string): Promise<{ table_name: string; ddl: string }> {
+	const res = await fetch(`${API_BASE}/tables/${encodeURIComponent(tableName)}/ddl`);
+	if (!res.ok) throw new Error(`Failed to fetch DDL for ${tableName}`);
+	return res.json();
+}
+
+export function getFullDDLExportUrl(): string {
+	return `${API_BASE}/export/ddl`;
+}

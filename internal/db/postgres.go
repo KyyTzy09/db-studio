@@ -481,3 +481,59 @@ func (p *PostgresDriver) DropColumn(ctx context.Context, table string, colName s
 	_, err := p.db.ExecContext(ctx, query)
 	return err
 }
+
+func (p *PostgresDriver) GenerateDDL(ctx context.Context, tableName string) (string, error) {
+	schema, err := p.GetSchema(ctx, tableName)
+	if err != nil {
+		return "", err
+	}
+
+	var lines []string
+	var pks []string
+
+	for _, col := range schema.Columns {
+		def := fmt.Sprintf("  %s %s", col.Name, col.DataType)
+		if col.IsAutoIncrement {
+			if strings.EqualFold(col.DataType, "BIGINT") {
+				def = fmt.Sprintf("  %s BIGSERIAL", col.Name)
+			} else {
+				def = fmt.Sprintf("  %s SERIAL", col.Name)
+			}
+		}
+		if !col.IsNullable {
+			def += " NOT NULL"
+		}
+		if col.DefaultValue != "" {
+			def += fmt.Sprintf(" DEFAULT %s", col.DefaultValue)
+		}
+		lines = append(lines, def)
+
+		if col.IsPrimaryKey {
+			pks = append(pks, col.Name)
+		}
+	}
+
+	if len(pks) > 0 {
+		lines = append(lines, fmt.Sprintf("  PRIMARY KEY (%s)", strings.Join(pks, ", ")))
+	}
+
+	return fmt.Sprintf("CREATE TABLE %s (\n%s\n);", tableName, strings.Join(lines, ",\n")), nil
+}
+
+func (p *PostgresDriver) GenerateFullDDL(ctx context.Context) (string, error) {
+	tables, err := p.GetTables(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var ddls []string
+	for _, t := range tables {
+		if t.Type == "BASE TABLE" || t.Type == "TABLE" || t.Type == "" {
+			ddl, err := p.GenerateDDL(ctx, t.Name)
+			if err == nil && ddl != "" {
+				ddls = append(ddls, ddl)
+			}
+		}
+	}
+	return strings.Join(ddls, "\n\n"), nil
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"db-studio-go/internal/config"
 	"db-studio-go/internal/db"
 	"db-studio-go/internal/http/handlers"
 	"db-studio-go/internal/http/routes"
@@ -18,20 +19,22 @@ import (
 )
 
 type Server struct {
-	router     *chi.Mux
-	driver     db.Database
-	webFS      embed.FS
-	port       int
-	actualPort int
+	router        *chi.Mux
+	driver        db.Database
+	configManager *config.Manager
+	webFS         embed.FS
+	port          int
+	actualPort    int
 }
 
-func NewServer(driver db.Database, webFS embed.FS, port int) *Server {
+func NewServer(driver db.Database, configManager *config.Manager, webFS embed.FS, port int) *Server {
 	s := &Server{
-		router:     chi.NewRouter(),
-		driver:     driver,
-		webFS:      webFS,
-		port:       port,
-		actualPort: port,
+		router:        chi.NewRouter(),
+		driver:        driver,
+		configManager: configManager,
+		webFS:         webFS,
+		port:          port,
+		actualPort:    port,
 	}
 
 	s.setupMiddleware()
@@ -69,14 +72,20 @@ func (s *Server) setupRoutes() {
 	connService := services.NewConnectionService(s.driver)
 	tableService := services.NewTableService(s.driver)
 	queryService := services.NewQueryService(s.driver)
+	historyService := services.NewHistoryService(s.driver, s.configManager)
+	snippetService := services.NewSnippetService(s.driver, s.configManager)
+	ddlService := services.NewDDLService(s.driver)
 
 	// Initialize handlers
 	connHandler := handlers.NewConnectionHandler(connService)
 	tableHandler := handlers.NewTableHandler(tableService)
-	queryHandler := handlers.NewQueryHandler(queryService)
+	queryHandler := handlers.NewQueryHandler(queryService, historyService)
+	historyHandler := handlers.NewHistoryHandler(historyService)
+	snippetHandler := handlers.NewSnippetHandler(snippetService)
+	ddlHandler := handlers.NewDDLHandler(ddlService)
 
 	// Register API routes
-	routes.RegisterAPIRoutes(s.router, connHandler, tableHandler, queryHandler)
+	routes.RegisterAPIRoutes(s.router, connHandler, tableHandler, queryHandler, historyHandler, snippetHandler, ddlHandler)
 
 	// Embedded Static Assets Handler for SvelteKit SPA
 	subFS, err := fs.Sub(s.webFS, "web/build")

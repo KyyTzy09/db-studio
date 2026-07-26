@@ -11,11 +11,15 @@ import (
 
 type QueryHandler struct {
 	BaseHandler
-	service *services.QueryService
+	service        *services.QueryService
+	historyService *services.HistoryService
 }
 
-func NewQueryHandler(service *services.QueryService) *QueryHandler {
-	return &QueryHandler{service: service}
+func NewQueryHandler(service *services.QueryService, historyService *services.HistoryService) *QueryHandler {
+	return &QueryHandler{
+		service:        service,
+		historyService: historyService,
+	}
 }
 
 func (h *QueryHandler) HandleExecuteQuery(w http.ResponseWriter, r *http.Request) {
@@ -34,8 +38,15 @@ func (h *QueryHandler) HandleExecuteQuery(w http.ResponseWriter, r *http.Request
 			})
 			return
 		}
+		if h.historyService != nil {
+			_ = h.historyService.LogQuery(payload.Query, 0, "error", 0, err.Error())
+		}
 		h.RespondError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	if h.historyService != nil && result != nil {
+		_ = h.historyService.LogQuery(payload.Query, result.ExecutionMs, "success", result.AffectedRows, "")
 	}
 
 	h.RespondJSON(w, http.StatusOK, result)

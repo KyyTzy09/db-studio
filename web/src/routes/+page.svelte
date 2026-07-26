@@ -124,8 +124,19 @@
 					</div>
 				</div>
 
-				<div class="text-xs text-muted-foreground font-mono">
-					DBStudio v0.1.0
+				<div class="flex items-center gap-3">
+					<a
+						href="/api/export/ddl"
+						download="schema_dump.sql"
+						class="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+						title="Export full database schema DDL as .sql file"
+					>
+						<FileText class="size-3.5 text-primary" />
+						<span>Export DDL (.sql)</span>
+					</a>
+					<span class="text-xs text-muted-foreground font-mono">
+						DBStudio v0.1.0
+					</span>
 				</div>
 			</header>
 

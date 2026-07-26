@@ -87,5 +87,7 @@ type Database interface {
 	CreateTable(ctx context.Context, req CreateTableRequest) error
 	AddColumn(ctx context.Context, table string, col ColumnSpec) error
 	DropColumn(ctx context.Context, table string, colName string) error
+	GenerateDDL(ctx context.Context, tableName string) (string, error)
+	GenerateFullDDL(ctx context.Context) (string, error)
 	Config() config.ConnectionConfig
 }

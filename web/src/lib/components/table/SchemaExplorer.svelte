@@ -1,14 +1,15 @@
 <script lang="ts">
 	import type { TableSchema } from '$lib/api';
-	import { fetchTableSchema } from '../../../data/services';
+	import { fetchTableSchema, fetchTableDDL } from '../../../data/services';
 	import { Button } from '../shadcn/button';
-	import { RefreshCw, FileText, Key, Check, X } from '@lucide/svelte';
+	import { RefreshCw, FileText, Key, Check, X, Copy, CheckCheck } from '@lucide/svelte';
 
 	let { tableName } = $props<{ tableName: string }>();
 
 	let schema = $state<TableSchema | null>(null);
 	let loading = $state(true);
 	let errorMsg = $state<string | null>(null);
+	let isCopiedDDL = $state(false);
 
 	$effect(() => {
 		if (tableName) {
@@ -27,6 +28,19 @@
 			loading = false;
 		}
 	}
+
+	async function handleCopyDDL() {
+		try {
+			const data = await fetchTableDDL(tableName);
+			if (data && data.ddl) {
+				await navigator.clipboard.writeText(data.ddl);
+				isCopiedDDL = true;
+				setTimeout(() => (isCopiedDDL = false), 2000);
+			}
+		} catch (err) {
+			console.error('Failed to copy DDL:', err);
+		}
+	}
 </script>
 
 <div class="flex-1 flex flex-col h-full bg-background text-foreground overflow-hidden">
@@ -37,9 +51,19 @@
 			<FileText class="size-4 text-primary" /> Schema for
 			<span class="text-primary font-mono">{tableName}</span>
 		</h2>
-		<Button variant="outline" size="xs" onclick={() => loadSchema(tableName)}>
-			<RefreshCw class="size-3 mr-1" /> Refresh
-		</Button>
+		<div class="flex items-center gap-2">
+			<Button variant="outline" size="xs" onclick={handleCopyDDL}>
+				{#if isCopiedDDL}
+					<CheckCheck class="size-3 mr-1 text-success" /> Copied DDL
+				{:else}
+					<Copy class="size-3 mr-1" /> Copy DDL
+				{/if}
+			</Button>
+
+			<Button variant="outline" size="xs" onclick={() => loadSchema(tableName)}>
+				<RefreshCw class="size-3 mr-1" /> Refresh
+			</Button>
+		</div>
 	</div>
 
 	<div class="flex-1 overflow-auto p-6">

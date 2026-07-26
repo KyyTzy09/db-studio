@@ -458,3 +458,33 @@ func (m *MySQLDriver) DropColumn(ctx context.Context, table string, colName stri
 	_, err := m.db.ExecContext(ctx, query)
 	return err
 }
+
+func (m *MySQLDriver) GenerateDDL(ctx context.Context, tableName string) (string, error) {
+	if err := m.Connect(ctx); err != nil {
+		return "", err
+	}
+	var name, ddl string
+	err := m.db.QueryRowContext(ctx, fmt.Sprintf("SHOW CREATE TABLE `%s`", tableName)).Scan(&name, &ddl)
+	if err != nil {
+		return "", err
+	}
+	return ddl + ";", nil
+}
+
+func (m *MySQLDriver) GenerateFullDDL(ctx context.Context) (string, error) {
+	tables, err := m.GetTables(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var ddls []string
+	for _, t := range tables {
+		if t.Type == "BASE TABLE" || t.Type == "TABLE" || t.Type == "" {
+			ddl, err := m.GenerateDDL(ctx, t.Name)
+			if err == nil && ddl != "" {
+				ddls = append(ddls, ddl)
+			}
+		}
+	}
+	return strings.Join(ddls, "\n\n"), nil
+}

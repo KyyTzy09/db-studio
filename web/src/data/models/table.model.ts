@@ -55,3 +55,22 @@ export interface CreateTableRequest {
 	table_name: string;
 	columns: ColumnSpec[];
 }
+
+export interface QueryHistoryItem {
+	id: string;
+	query: string;
+	executed_at: string;
+	duration_ms: number;
+	status: 'success' | 'error';
+	rows_affected: number;
+	error_message?: string;
+}
+
+export interface QuerySnippet {
+	id?: string;
+	title: string;
+	description?: string;
+	query: string;
+	created_at?: string;
+	updated_at?: string;
+}

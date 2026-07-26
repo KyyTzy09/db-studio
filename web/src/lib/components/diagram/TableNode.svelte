@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { TableSchema } from '$lib/api';
-	import { Key, Link, Table } from '@lucide/svelte';
+	import { Key, Table, Copy, CheckCheck } from '@lucide/svelte';
+	import { fetchTableDDL } from '../../../data/services';
 
 	let { schema, x, y, isSelected, onMouseDown, onSelectTable } = $props<{
 		schema: TableSchema;
@@ -10,6 +11,22 @@
 		onMouseDown: (e: MouseEvent) => void;
 		onSelectTable: (name: string) => void;
 	}>();
+
+	let isCopied = $state(false);
+
+	async function handleCopyDDL(e: MouseEvent) {
+		e.stopPropagation();
+		try {
+			const res = await fetchTableDDL(schema.table_name);
+			if (res && res.ddl) {
+				await navigator.clipboard.writeText(res.ddl);
+				isCopied = true;
+				setTimeout(() => (isCopied = false), 2000);
+			}
+		} catch (err) {
+			console.error('Failed to copy table DDL:', err);
+		}
+	}
 </script>
 
 <div
@@ -29,17 +46,32 @@
 				{schema.table_name}
 			</span>
 		</div>
-		<button
-			type="button"
-			onclick={(e) => {
-				e.stopPropagation();
-				onSelectTable(schema.table_name);
-			}}
-			class="text-[10px] font-semibold text-primary hover:underline px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors"
-			title="View Table Data"
-		>
-			Data Grid
-		</button>
+		<div class="flex items-center gap-1">
+			<button
+				type="button"
+				onclick={handleCopyDDL}
+				class="text-[10px] font-semibold text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted transition-colors"
+				title="Copy Table DDL"
+			>
+				{#if isCopied}
+					<CheckCheck class="size-3 text-success" />
+				{:else}
+					<Copy class="size-3" />
+				{/if}
+			</button>
+
+			<button
+				type="button"
+				onclick={(e) => {
+					e.stopPropagation();
+					onSelectTable(schema.table_name);
+				}}
+				class="text-[10px] font-semibold text-primary hover:underline px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors"
+				title="View Table Data"
+			>
+				Data Grid
+			</button>
+		</div>
 	</div>
 
 	<!-- Columns List -->

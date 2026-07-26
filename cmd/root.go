@@ -99,7 +99,7 @@ func NewRootCmd(webFS embed.FS) *cobra.Command {
 			ui.PrintStarting()
 
 			// Step 5: Start Chi HTTP Server (Automatic Port Fallback) & Open Browser
-			srv := httpServer.NewServer(driver, WebFS, portFlag)
+			srv := httpServer.NewServer(driver, configMgr, WebFS, portFlag)
 
 			return srv.ListenAndServe(func(actualPort int) {
 				url := fmt.Sprintf("http://localhost:%d", actualPort)

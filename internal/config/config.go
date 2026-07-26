@@ -130,3 +130,132 @@ func (m *Manager) SaveConnection(conn ConnectionConfig) error {
 	cfg.ActiveConnectionID = conn.ID
 	return m.Save(cfg)
 }
+
+// AddHistoryItem appends a history item to the specified connection and limits to 200 items
+func (m *Manager) AddHistoryItem(connID string, item QueryHistoryItem) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	for i, conn := range cfg.Connections {
+		if conn.ID == connID {
+			// Prepend new item so newest is first
+			history := append([]QueryHistoryItem{item}, conn.History...)
+			if len(history) > 200 {
+				history = history[:200]
+			}
+			cfg.Connections[i].History = history
+			return m.Save(cfg)
+		}
+	}
+	return nil
+}
+
+// GetHistory returns history items for a connection
+func (m *Manager) GetHistory(connID string) ([]QueryHistoryItem, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, conn := range cfg.Connections {
+		if conn.ID == connID {
+			if conn.History == nil {
+				return []QueryHistoryItem{}, nil
+			}
+			return conn.History, nil
+		}
+	}
+	return []QueryHistoryItem{}, nil
+}
+
+// ClearHistory clears all history items for a connection
+func (m *Manager) ClearHistory(connID string) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	for i, conn := range cfg.Connections {
+		if conn.ID == connID {
+			cfg.Connections[i].History = []QueryHistoryItem{}
+			return m.Save(cfg)
+		}
+	}
+	return nil
+}
+
+// GetSnippets returns saved query snippets for a connection
+func (m *Manager) GetSnippets(connID string) ([]QuerySnippet, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, conn := range cfg.Connections {
+		if conn.ID == connID {
+			if conn.Snippets == nil {
+				return []QuerySnippet{}, nil
+			}
+			return conn.Snippets, nil
+		}
+	}
+	return []QuerySnippet{}, nil
+}
+
+// SaveSnippet adds or updates a query snippet for a connection
+func (m *Manager) SaveSnippet(connID string, snippet QuerySnippet) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	if snippet.ID == "" {
+		snippet.ID = fmt.Sprintf("snip_%d", now.UnixNano())
+		snippet.CreatedAt = now
+	}
+	snippet.UpdatedAt = now
+
+	for i, conn := range cfg.Connections {
+		if conn.ID == connID {
+			foundIdx := -1
+			for j, s := range conn.Snippets {
+				if s.ID == snippet.ID {
+					foundIdx = j
+					break
+				}
+			}
+			if foundIdx >= 0 {
+				cfg.Connections[i].Snippets[foundIdx] = snippet
+			} else {
+				cfg.Connections[i].Snippets = append([]QuerySnippet{snippet}, conn.Snippets...)
+			}
+			return m.Save(cfg)
+		}
+	}
+	return nil
+}
+
+// DeleteSnippet removes a snippet by ID for a connection
+func (m *Manager) DeleteSnippet(connID string, snippetID string) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	for i, conn := range cfg.Connections {
+		if conn.ID == connID {
+			var newSnippets []QuerySnippet
+			for _, s := range conn.Snippets {
+				if s.ID != snippetID {
+					newSnippets = append(newSnippets, s)
+				}
+			}
+			cfg.Connections[i].Snippets = newSnippets
+			return m.Save(cfg)
+		}
+	}
+	return nil
+}

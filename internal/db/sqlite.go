@@ -439,3 +439,35 @@ func (s *SQLiteDriver) DropColumn(ctx context.Context, table string, colName str
 	_, err := s.db.ExecContext(ctx, query)
 	return err
 }
+
+func (s *SQLiteDriver) GenerateDDL(ctx context.Context, tableName string) (string, error) {
+	if err := s.Connect(ctx); err != nil {
+		return "", err
+	}
+	var sqlStr string
+	err := s.db.QueryRowContext(ctx, "SELECT sql FROM sqlite_master WHERE type='table' AND name = ?", tableName).Scan(&sqlStr)
+	if err != nil {
+		return "", err
+	}
+	return sqlStr + ";", nil
+}
+
+func (s *SQLiteDriver) GenerateFullDDL(ctx context.Context) (string, error) {
+	if err := s.Connect(ctx); err != nil {
+		return "", err
+	}
+	rows, err := s.db.QueryContext(ctx, "SELECT sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL")
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var ddls []string
+	for rows.Next() {
+		var sqlStr string
+		if err := rows.Scan(&sqlStr); err == nil && sqlStr != "" {
+			ddls = append(ddls, sqlStr+";")
+		}
+	}
+	return strings.Join(ddls, "\n\n"), nil
+}
