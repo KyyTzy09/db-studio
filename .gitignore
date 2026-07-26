@@ -12,6 +12,7 @@ bin/*
 *.exe~
 *.log
 test
+.npmrc
 
 # Internal Docs & Notes
 docs/
